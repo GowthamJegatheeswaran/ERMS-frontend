@@ -1,50 +1,56 @@
-import { BrowserRouter, Routes, Route } from "react-router-dom"
+import { BrowserRouter, Routes, Route } from "react-router-dom";
+import { RequestProvider } from "./context/RequestContext";
 
-import Home from "./pages/Home"
-import Login from "./pages/Login"
-import Signup from "./pages/Signup"
-import ResetPassword from "./pages/ResetPassword"
-import StudentDashboard from "./pages/StudentDashboard"
-import NewRequest from "./pages/NewRequest"
-import ViewRequests from "./pages/ViewRequests"
-import History from "./pages/History"
+// Pages
+import Home from "./pages/Home";
+import LoginSignup from "./pages/LoginSignup"; // Combined login + signup component
+import ResetPassword from "./pages/ResetPassword";
 
-import InstructorDashboard from "./pages/InstructorDashboard"
+// STUDENT
+import StudentDashboard from "./pages/StudentDashboard";
+import NewRequest from "./pages/NewRequest";
+import ViewRequests from "./pages/ViewRequests";
+import History from "./pages/History";
 
-import LecturerDashboard from "./pages/LecturerDashboard"
-import LecturerApplications from "./pages/LecturerApplications"
-import LecturerNewRequest from "./pages/LecturerNewRequest"
-import LecturerViewRequests from "./pages/LecturerViewRequests"
-import LecturerHistory from "./pages/LecturerHistory"
+// INSTRUCTOR
+import InstructorDashboard from "./pages/InstructorDashboard";
 
-import TODashboard from "./pages/TODashboard"
-import TOApprovalRequests from "./pages/TOApprovalRequests"
-import TOPurchase from "./pages/TOPurchase"
-import TOPurchaseNew from "./pages/TOPurchaseNew"
-import TOHistory from "./pages/TOHistory"
+// LECTURER
+import LecturerDashboard from "./pages/LecturerDashboard";
+import LecturerApplications from "./pages/LecturerApplications";
+import LecturerNewRequest from "./pages/LecturerNewRequest";
+import LecturerViewRequests from "./pages/LecturerViewRequests";
+import LecturerHistory from "./pages/LecturerHistory";
 
-import HodDashboard from "./pages/HodDashboard"
-import HodMyWork from "./pages/HodMyWork"
-import HodDeptWork from "./pages/HodDeptWork"
-import HodInventory from "./pages/HodInventory"
-import HodReport from "./pages/HodReport"
-import HodReportLab from "./pages/HodReportLab"
-import HodDeptPurchase from "./pages/HodDeptPurchase"
-import HodInspect from "./pages/HodInspect"
-import HodHistory from "./pages/HodHistory"
+// TECHNICAL OFFICER (TO)
+import TODashboard from "./pages/TODashboard";
+import TOApprovalRequests from "./pages/TOApprovalRequests";
+import TOPurchase from "./pages/TOPurchase";
+import TOPurchaseNew from "./pages/TOPurchaseNew";
+import TOHistory from "./pages/TOHistory";
 
-import AdminDashboard from "./pages/AdminDashboard"
-import AdminDepartment from "./pages/AdminDepartment"
-import AdminViewRequests from "./pages/AdminViewRequests"
-import AdminUsers from "./pages/AdminUsers"
-import AdminReport from "./pages/AdminReport"
-import AdminHistory from "./pages/AdminHistory"
+// HOD
+import HodDashboard from "./pages/HodDashboard";
+import HodMyWork from "./pages/HodMyWork";
+import HodDeptWork from "./pages/HodDeptWork";
+import HodInventory from "./pages/HodInventory";
+import HodReport from "./pages/HodReport";
+import HodReportLab from "./pages/HodReportLab";
+import HodDeptPurchase from "./pages/HodDeptPurchase";
+import HodInspect from "./pages/HodInspect";
+import HodHistory from "./pages/HodHistory";
 
-import Help from "./pages/Help"
-import Settings from "./pages/Settings"
+// ADMIN
+import AdminDashboard from "./pages/AdminDashboard";
+import AdminDepartment from "./pages/AdminDepartment";
+import AdminViewRequests from "./pages/AdminViewRequests";
+import AdminUsers from "./pages/AdminUsers";
+import AdminReport from "./pages/AdminReport";
+import AdminHistory from "./pages/AdminHistory";
 
-
-import { RequestProvider } from "./context/RequestContext"
+// COMMON
+import Help from "./pages/Help";
+import Settings from "./pages/Settings";
 
 function App() {
   return (
@@ -52,8 +58,8 @@ function App() {
       <BrowserRouter>
         <Routes>
           <Route path="/" element={<Home />} />
-          <Route path="/login" element={<Login />} />
-          <Route path="/signup" element={<Signup />} />
+          <Route path="/login" element={<LoginSignup />} />
+          <Route path="/signup" element={<LoginSignup />} />
           <Route path="/reset-password" element={<ResetPassword />} />
 
           {/* STUDENT */}
@@ -107,7 +113,7 @@ function App() {
         </Routes>
       </BrowserRouter>
     </RequestProvider>
-  )
+  );
 }
 
-export default App
+export default App;
