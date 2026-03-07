@@ -103,9 +103,17 @@ body {
   box-shadow: 0 2px 8px rgba(0,0,0,0.08); /* added subtle shadow */
   padding: 15px 60px;
   display: flex;
-  justify-content: space-between;
+  justify-content: flex-start;
+  gap: 40px;
   align-items: center;
   border-bottom: none;
+}
+
+.nav-container {
+  display: flex;
+  align-items: center;
+  gap: 25px; /* spacing between nav links and login */
+  margin-left: auto; /* push login button to the right */
 }
 
 .logo {
@@ -117,7 +125,7 @@ body {
 .nav-links {
   display: flex;
   list-style: none;
-  gap: 20px;
+  gap: 30px;
 }
 
 .nav-links a {

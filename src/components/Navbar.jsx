@@ -23,18 +23,19 @@ export default function Navbar({ onFeedback }) {
       </div>
 
       {/* Navigation Links */}
-      <ul className={`nav-links ${open ? "active" : ""}`} aria-expanded={open}>
-        <li><a href="#home" onClick={() => setOpen(false)}>Home</a></li>
-        <li><a href="#features" onClick={() => setOpen(false)}>Features</a></li>
-        <li><a href="#contact" onClick={() => setOpen(false)}>Contact</a></li>
-        <li><a href="#about" onClick={() => setOpen(false)}>About</a></li>
-        <li><button className="nav-btn" onClick={handleFeedback}>Feedback</button></li>
-      </ul>
+      <div className="nav-container">
+  <ul className={`nav-links ${open ? "active" : ""}`} aria-expanded={open}>
+    <li><a href="#home" onClick={() => setOpen(false)}>Home</a></li>
+    <li><a href="#features" onClick={() => setOpen(false)}>Features</a></li>
+    <li><a href="#contact" onClick={() => setOpen(false)}>Contact</a></li>
+    <li><a href="#about" onClick={() => setOpen(false)}>About</a></li>
+    <li><button className="nav-btn" onClick={handleFeedback}>Feedback</button></li>
+  </ul>
 
-      {/* Login Button */}
-      <Link to="/login" className="login-btn">
-        Login
-      </Link>
+  <Link to="/login" className="login-btn">
+    Login
+  </Link>
+</div>
 
       {/* Mobile Menu Toggle */}
       <div className="menu-toggle" onClick={() => setOpen(!open)}>
