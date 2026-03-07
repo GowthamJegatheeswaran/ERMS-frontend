@@ -93,6 +93,7 @@ body {
   align-items: center;
   width: 100%;
   max-width: 1200px;
+  gap: 40px; 
 }
 
 .hero-text {
@@ -110,8 +111,14 @@ body {
 
 .hero-text .hero-subtitle {
   font-size: 18px;
-  margin-bottom: 25px;
+  margin-bottom: 10px;
   color: #374151; /* dark gray */
+}
+
+.hero-text .hero-tagline {
+  font-size: 16px;
+  color: #6b7280; /* grayish professional color */
+  margin-bottom: 25px; /* space before button */
 }
 
 .hero-image {
@@ -150,8 +157,8 @@ body {
 
 .hero-subtitle {
   font-size: 18px;
-  color: #f3f4f6;
-  margin-bottom: 20px;
+  color: #374151;
+  margin-bottom: 10px;
 }
 
 .hero-tagline {
@@ -192,14 +199,6 @@ body {
   background: #1e40af;
   transform: translateY(-4px);
   box-shadow: 0 6px 18px rgba(37, 99, 235, 0.6);
-}
-
-.hero-text-block {
-  margin-bottom: 40px; /* space between text block and button */
-}
-
-.hero-button-container {
-  display: inline-block; /* keeps button natural width */
 }
 
 /* =======================================
