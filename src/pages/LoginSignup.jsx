@@ -66,11 +66,21 @@ const [signupSuccess, setSignupSuccess] = useState("");
     }
 
     try {
-      await registerStudent({ name: fullName, regNo, department, email, password });
-setSignupSuccess("Signup successful! You can now log in.");
-setSignupError("");
-setShowSignup(false); // Optional: switch to login view automatically
-    } catch (err) {
+  await registerStudent({ name: fullName, regNo, department, email, password });
+
+  // ✅ Clear the form fields
+  setFullName("");
+  setRegNo("");
+  setDepartment("");
+  setEmail("");
+  setPassword("");
+  setConfirm("");
+
+  setSignupSuccess("Signup successful! You can now log in.");
+  setSignupError("");
+  
+  setShowSignup(false); // optional: switch to login view automatically
+} catch (err) {
       setSignupError(err?.message || "Signup failed");
     }
   };
