@@ -351,7 +351,7 @@ body {
    CONTACT SECTION
 ======================================= */
 .contact {
-  padding: 80px 20px;
+  padding: 100px 40px;
   text-align: center;
   background: #f1f5f9; /* softer background */
   border-top: 1px solid #e2e8f0;
@@ -484,29 +484,34 @@ footer {
   background: #1e293b;
   color: #f1f5f9;
   text-align: center;
-  padding: 30px 20px;
+  padding: 40px 20px;
   font-size: 14px;
   border-top: 2px solid #2563eb;
 }
 
 /* About Section */
+/* About Section */
 .about {
-  padding: 80px 40px;
+  padding: 100px 40px;       /* increase top/bottom padding for spacing */
   text-align: center;
-  background: #f9fafb;
+  background: #ffffff;         /* white section separates from Contact */
+  border-top: 1px solid #e2e8f0;
+  border-bottom: 1px solid #e2e8f0;    /* soft background for contrast */
 }
 
 .about h2 {
-  font-size: 28px;
+  font-size: 32px;           /* slightly larger heading */
   margin-bottom: 20px;
+  font-weight: 700;
+  color: #111;
 }
 
 .about p {
   font-size: 16px;
-  color: #374151;
+  color: #4b5563;
   max-width: 700px;
-  margin: 0 auto;
-  line-height: 1.6;
+  margin: 0 auto;            /* center the text */
+  line-height: 1.8;
 }
 
 footer p {
