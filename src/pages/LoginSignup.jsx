@@ -3,7 +3,10 @@ import { useState, useMemo } from "react";
 import { useNavigate } from "react-router-dom";
 import { useRequests } from "../context/RequestContext";
 
+
 export default function LoginSignup() {
+  // Add near the top with your other state hooks
+const [signupSuccess, setSignupSuccess] = useState("");
   const navigate = useNavigate();
   const { authenticate, registerStudent } = useRequests();
 
@@ -64,7 +67,9 @@ export default function LoginSignup() {
 
     try {
       await registerStudent({ name: fullName, regNo, department, email, password });
-      navigate("/login");
+setSignupSuccess("Signup successful! You can now log in.");
+setSignupError("");
+setShowSignup(false); // Optional: switch to login view automatically
     } catch (err) {
       setSignupError(err?.message || "Signup failed");
     }
@@ -126,6 +131,7 @@ export default function LoginSignup() {
             <form className="signup-box" onSubmit={handleSignup}>
               <h2>Create Account</h2>
               {signupError && <p className="error">{signupError}</p>}
+              {signupSuccess && <p className="success">{signupSuccess}</p>}
 
               <label>Full Name</label>
               <input value={fullName} onChange={(e) => setFullName(e.target.value)} required />
