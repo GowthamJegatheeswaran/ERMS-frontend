@@ -3,7 +3,7 @@ import { RequestProvider } from "./context/RequestContext";
 
 // Pages
 import Home from "./pages/Home";
-import LoginSignup from "./pages/LoginSignup";
+import LoginSignup from "./pages/LoginSignup"; // ✅ combined login + signup
 import ResetPassword from "./pages/ResetPassword";
 
 // Student
@@ -22,7 +22,7 @@ import LecturerNewRequest from "./pages/LecturerNewRequest";
 import LecturerViewRequests from "./pages/LecturerViewRequests";
 import LecturerHistory from "./pages/LecturerHistory";
 
-// TO
+// Technical Officer (TO)
 import TODashboard from "./pages/TODashboard";
 import TOApprovalRequests from "./pages/TOApprovalRequests";
 import TOPurchase from "./pages/TOPurchase";

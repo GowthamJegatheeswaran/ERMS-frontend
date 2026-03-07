@@ -31,6 +31,7 @@ export default function LoginSignup() {
   const isWeakPassword = password.length > 0 && !strongPattern.test(password);
   const isConfirmMismatch = confirm.length > 0 && password !== confirm;
 
+  // LOGIN HANDLER
   const handleLogin = async (e) => {
     e.preventDefault();
     setLoginError("");
@@ -45,6 +46,7 @@ export default function LoginSignup() {
     }
   };
 
+  // SIGNUP HANDLER
   const handleSignup = async (e) => {
     e.preventDefault();
     setSignupError("");
@@ -64,6 +66,7 @@ export default function LoginSignup() {
 
     try {
       await registerStudent({ name: fullName, regNo, department, email, password });
+      setShowSignup(false); // switch back to login after signup
       navigate("/login");
     } catch (err) {
       setSignupError(err?.message || "Signup failed");
@@ -94,7 +97,6 @@ export default function LoginSignup() {
             <form className="login-box" onSubmit={handleLogin}>
               <h2>Login</h2>
               <p>Access your account</p>
-
               {loginError && <p className="error">{loginError}</p>}
 
               <label>Email</label>
@@ -121,22 +123,17 @@ export default function LoginSignup() {
                 </label>
               </div>
 
-              <button type="submit" className="login-btn">
-                Sign In
-              </button>
+              <button type="submit" className="login-btn">Sign In</button>
 
               <p>
                 New here?{" "}
-                <span className="link" onClick={() => setShowSignup(true)}>
-                  Sign Up
-                </span>
+                <span className="link" onClick={() => setShowSignup(true)}>Sign Up</span>
               </p>
             </form>
           ) : (
             <form className="signup-box" onSubmit={handleSignup}>
               <h2>Create Account</h2>
               <p>Student registration</p>
-
               {signupError && <p className="error">{signupError}</p>}
 
               <label>Full Name</label>
@@ -194,9 +191,7 @@ export default function LoginSignup() {
 
               <p>
                 Already have an account?{" "}
-                <span className="link" onClick={() => setShowSignup(false)}>
-                  Sign In
-                </span>
+                <span className="link" onClick={() => setShowSignup(false)}>Sign In</span>
               </p>
             </form>
           )}
