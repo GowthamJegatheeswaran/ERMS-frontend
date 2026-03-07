@@ -76,10 +76,11 @@ const [signupSuccess, setSignupSuccess] = useState("");
   setPassword("");
   setConfirm("");
 
+    setSignupError("");
   setSignupSuccess("Signup successful! You can now log in.");
-  setSignupError("");
+
   
-  setShowSignup(false); // optional: switch to login view automatically
+    setTimeout(() => setSignupSuccess(""), 3000);
 } catch (err) {
       setSignupError(err?.message || "Signup failed");
     }
