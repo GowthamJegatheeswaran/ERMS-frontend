@@ -1,188 +1,201 @@
+/* ================================
+   LOGIN PAGE
+================================= */
 
 .login-bg {
   min-height: 100vh;
-  background: url("/images/login-bg.jpg") center/cover;
+  background: url("/images/login-bg.jpg") center/cover no-repeat;
   display: flex;
   align-items: center;
   justify-content: center;
   position: relative;
+  font-family: 'Poppins', sans-serif;
 }
 
-/* BIG TRANSPARENT BACK BOX */
+/* BIG TRANSPARENT BACKDROP */
 .login-back-box {
   position: absolute;
-  width: 80%;
+  width: 85%;
+  max-width: 1200px;
   height: 75%;
-  background: rgba(60, 48, 48, 0.289);
-  backdrop-filter: blur(5px);
-  border-radius: 25px;
+  background: rgba(255, 255, 255, 0.15);
+  backdrop-filter: blur(10px);
+  border-radius: 20px;
+  box-shadow: 0 8px 20px rgba(0,0,0,0.1);
 }
 
-/* LOGIN BOX ON RIGHT */
+/* LOGIN FORM BOX */
 .login-box {
-  position: absolute;
-  right: 15%;
+  position: relative;
   width: 400px;
-  background: rgba(3, 2, 2, 0.614);
-  backdrop-filter: blur(1px);
-  padding: 30px;
-  border-radius: 18px;
+  background: rgba(255, 255, 255, 0.95);
+  padding: 40px 35px;
+  border-radius: 16px;
+  box-shadow: 0 10px 25px rgba(0,0,0,0.15);
+  display: flex;
+  flex-direction: column;
+  z-index: 10;
 }
-.login-box h2{
+
+.login-box h2 {
   text-align: center;
-  margin-bottom: 5px;
-  color: white;
+  margin-bottom: 10px;
+  color: #111827;
+  font-size: 28px;
+  font-weight: 700;
 }
-.login-box p{
+
+.login-box p {
   text-align: center;
-  font-size: 13px;
-  margin-bottom: 15px;
-  color: white;
+  font-size: 14px;
+  margin-bottom: 20px;
+  color: #4b5563;
 }
+
 .login-box label {
-  font-size: 13px;
-  margin-top: 10px;
+  font-size: 14px;
+  color: #374151;
+  margin-top: 15px;
   display: block;
-  border-color:black ;
-  color: white;
 }
 
 .login-box input {
   width: 100%;
-  padding: 8px;
-  margin-top: 3px;
-  background: none;
-  color: white;
-}
-.login-box button {
-  width: 100%;
-  padding: 10px;
-  background: #2563eb;
-  color: white;
-  border:rgba(60, 48, 48, 0.289);
-  border-radius: 4px;
-  cursor: pointer;
+  padding: 12px;
+  margin-top: 5px;
+  border: 1px solid #d1d5db;
+  border-radius: 8px;
+  background: #fff;
+  color: #111827;
+  font-size: 14px;
+  transition: all 0.2s ease;
 }
 
+.login-box input:focus {
+  outline: none;
+  border-color: #2563eb;
+  box-shadow: 0 0 8px rgba(37, 99, 235, 0.3);
+}
+
+/* BUTTON */
+.login-box button {
+  width: 100%;
+  padding: 14px;
+  margin-top: 25px;
+  background: #2563eb;
+  color: white;
+  border: none;
+  border-radius: 10px;
+  font-size: 16px;
+  font-weight: 600;
+  cursor: pointer;
+  transition: all 0.3s ease;
+  box-shadow: 0 5px 15px rgba(37, 99, 235, 0.4);
+}
+
+.login-box button:hover {
+  background: #1e40af;
+  transform: translateY(-2px);
+  box-shadow: 0 7px 20px rgba(37, 99, 235, 0.5);
+}
+
+/* OPTIONS (Remember / Forgot) */
 .options {
   display: flex;
   justify-content: space-between;
   align-items: center;
-  font-size: 12px;
-  margin: 5px 0 15px;
+  font-size: 13px;
+  margin-top: 10px;
 }
 
 .remember {
   display: flex;
   align-items: center;
   gap: 6px;
-  cursor: pointer;
-  color: white;
+  color: #374151;
 }
 
-.remember input{
-  margin: 0px;
+.remember input {
   transform: translateY(1px);
 }
 
 .link {
-  text-decoration: none;
-  color: lightblue;
-  font-size: 12px;
+  color: #2563eb;
   cursor: pointer;
+  text-decoration: none;
 }
 
 .link:hover {
   text-decoration: underline;
 }
-.error-text {
-  color: red;
-  font-size: 11px;
+
+/* ERROR MESSAGE */
+.error {
+  color: #dc2626;
+  font-size: 13px;
+  margin-top: 10px;
+  text-align: center;
 }
-/* =======================
-   Overlay (Forgot / Signup)
-======================= */
+
+/* SIGNUP / FORGOT OVERLAYS */
 .overlay {
   position: fixed;
   inset: 0;
   background: rgba(0,0,0,0.6);
-  display: flex;             /* ✅ React controls visibility */
+  display: flex;
   align-items: center;
   justify-content: center;
-  z-index: 1000;
+  z-index: 2000;
 }
 
-/* Popup box */
 .overlay-box {
   background: #ffffff;
-  width: 340px;
-  padding: 25px;
-  border-radius: 8px;
+  width: 360px;
+  padding: 30px;
+  border-radius: 12px;
   text-align: left;
   animation: zoomIn 0.3s ease;
 }
 
-/* Signup form inside overlay */
 .overlay-box form label {
+  font-size: 14px;
+  margin-top: 10px;
   display: block;
-  font-size: 12px;
-  margin-top: 8px;
-  text-align: left;
 }
-.overlay-box form input {
-  width: 100%;
-  padding: 8px;
-  margin-top: 3px;
-  height: 30px;
-}
-/* Signup form select (Department) */
+
+.overlay-box form input,
 .overlay-box form select {
   width: 100%;
-  padding: 8px;
-  margin-top: 3px;
-  font-size: 12px;
-  border: 1px solid #ccc;
-  border-radius: 4px;
-  background-color: #fff;
+  padding: 10px;
+  margin-top: 5px;
+  border-radius: 8px;
+  border: 1px solid #d1d5db;
+  font-size: 14px;
 }
-.close-link{
+
+.close-link {
   text-align: center;
+  display: block;
+  margin-top: 15px;
+  color: #2563eb;
+  cursor: pointer;
+  font-size: 13px;
 }
-/* =======================
-   Animations
-======================= */
+
 @keyframes zoomIn {
-  from {
-    transform: scale(0.7);
-    opacity: 0;
+  from { transform: scale(0.7); opacity: 0; }
+  to { transform: scale(1); opacity: 1; }
+}
+
+/* RESPONSIVE */
+@media (max-width: 768px) {
+  .login-box {
+    width: 90%;
+    padding: 25px 20px;
   }
-  to {
-    transform: scale(1);
-    opacity: 1;
+
+  .login-back-box {
+    width: 90%;
+    height: 80%;
   }
-}
-
-.login-select {
-  width: 100%;
-  padding: 8px;
-  margin-top: 3px;
-  background: none;
-  color: white;
-  border: 1px solid rgba(255, 255, 255, 0.35);
-  border-radius: 4px;
-}
-
-.login-select option {
-  color: #000;
-}
-
-.signup-box {
-  max-height: 70vh;
-  overflow-y: auto;
-}
-
-.error {
-  color: #ffb4b4;
-  font-size: 12px;
-  margin-bottom: 10px;
 }
