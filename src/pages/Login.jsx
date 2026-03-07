@@ -1,97 +1,208 @@
 import "../styles/login.css";
-import ForgotModal from "../components/ForgotModal";
-import SignupOverlay from "../components/SignupOverlay";
-import { useState } from "react";
+import { useState, useMemo } from "react";
 import { useNavigate } from "react-router-dom";
 import { useRequests } from "../context/RequestContext";
 
-export default function Login() {
+export default function LoginSignup() {
+  const navigate = useNavigate();
+  const { authenticate, registerStudent } = useRequests();
+
+  const [showSignup, setShowSignup] = useState(false);
+
+  // Login state
+  const [loginEmail, setLoginEmail] = useState("");
+  const [loginPassword, setLoginPassword] = useState("");
+  const [loginError, setLoginError] = useState("");
+
+  // Signup state
+  const [fullName, setFullName] = useState("");
+  const [regNo, setRegNo] = useState("");
+  const [department, setDepartment] = useState("");
   const [email, setEmail] = useState("");
   const [password, setPassword] = useState("");
-  const [error, setError] = useState("");
-  const [showSignup, setShowSignup] = useState(false);
-  const [showForgot, setShowForgot] = useState(false);
+  const [confirm, setConfirm] = useState("");
+  const [signupError, setSignupError] = useState("");
 
-  const navigate = useNavigate();
-  const { authenticate } = useRequests();
+  const strongPattern = useMemo(
+    () => /(?=.*[a-z])(?=.*[A-Z])(?=.*\d)(?=.*[@$!%*?&]).{8,}/,
+    []
+  );
+
+  const isWeakPassword = password.length > 0 && !strongPattern.test(password);
+  const isConfirmMismatch = confirm.length > 0 && password !== confirm;
 
   const handleLogin = async (e) => {
     e.preventDefault();
-    if (!email || !password) return setError("Please fill all fields");
+    setLoginError("");
+
+    if (!loginEmail || !loginPassword) return setLoginError("Please fill all fields");
 
     try {
-      const user = await authenticate(email, password);
-      setError("");
+      const user = await authenticate(loginEmail, loginPassword);
       navigate(user.redirect);
     } catch (err) {
-      setError(err?.message || "Invalid email or password");
+      setLoginError(err?.message || "Invalid email or password");
+    }
+  };
+
+  const handleSignup = async (e) => {
+    e.preventDefault();
+    setSignupError("");
+
+    if (!fullName || !regNo || !department || !email || !password || !confirm) {
+      setSignupError("Please fill all fields");
+      return;
+    }
+    if (isWeakPassword) {
+      setSignupError("Please use a strong password");
+      return;
+    }
+    if (isConfirmMismatch) {
+      setSignupError("Passwords do not match");
+      return;
+    }
+
+    try {
+      await registerStudent({ name: fullName, regNo, department, email, password });
+      navigate("/login");
+    } catch (err) {
+      setSignupError(err?.message || "Signup failed");
     }
   };
 
   return (
     <div className="login-bg">
-      {/* Transparent blurred background */}
-      <div className="login-back-box"></div>
-
-      <div className="login-container">
-        {/* LEFT SIDE TEXT */}
-        <div className="login-left">
-          <h1>Welcome to Equipment Request System</h1>
-          <p>
-            Efficiently request, track, and manage laboratory equipment
-            for students & faculty. Streamline lab management with ease.
-          </p>
+      <div className={`sliding-container`}>
+        {/* LEFT PANEL */}
+        <div className={`login-left ${showSignup ? "slide-left" : ""}`}>
+          {!showSignup ? (
+            <>
+              <h1>Welcome Back!</h1>
+              <p>Enter your personal details to login</p>
+            </>
+          ) : (
+            <>
+              <h1>Create Account</h1>
+              <p>Join the system to request and manage laboratory equipment</p>
+            </>
+          )}
         </div>
 
-        {/* RIGHT SIDE FORM */}
-        <form className="login-box" onSubmit={handleLogin}>
-          <h2>Login</h2>
-          <p>Access your account</p>
+        {/* RIGHT FORM */}
+        <div className={`form-container ${showSignup ? "slide-right" : ""}`}>
+          {!showSignup ? (
+            <form className="login-box" onSubmit={handleLogin}>
+              <h2>Login</h2>
+              <p>Access your account</p>
 
-          {error && <p className="error">{error}</p>}
+              {loginError && <p className="error">{loginError}</p>}
 
-          <label>Email</label>
-          <input
-            type="email"
-            value={email}
-            onChange={(e) => setEmail(e.target.value)}
-            placeholder="Enter your email"
-            required
-          />
+              <label>Email</label>
+              <input
+                type="email"
+                value={loginEmail}
+                onChange={(e) => setLoginEmail(e.target.value)}
+                placeholder="Enter your email"
+                required
+              />
 
-          <label>Password</label>
-          <input
-            type="password"
-            value={password}
-            onChange={(e) => setPassword(e.target.value)}
-            placeholder="Enter your password"
-            required
-          />
+              <label>Password</label>
+              <input
+                type="password"
+                value={loginPassword}
+                onChange={(e) => setLoginPassword(e.target.value)}
+                placeholder="Enter your password"
+                required
+              />
 
-          <div className="options">
-            <label className="remember">
-              <input type="checkbox" /> Remember me
-            </label>
-            <span className="link" onClick={() => setShowForgot(true)}>
-              Forgot Password?
-            </span>
-          </div>
+              <div className="options">
+                <label className="remember">
+                  <input type="checkbox" /> Remember me
+                </label>
+                {/* Forgot Password modal logic can stay */}
+              </div>
 
-          <button type="submit" className="login-btn">
-            Login
-          </button>
+              <button type="submit" className="login-btn">
+                Sign In
+              </button>
 
-          <p>
-            <span className="text">Student?</span>{" "}
-            <span className="link" onClick={() => navigate("/signup")}>
-              Register
-            </span>
-          </p>
-        </form>
+              <p>
+                New here?{" "}
+                <span className="link" onClick={() => setShowSignup(true)}>
+                  Sign Up
+                </span>
+              </p>
+            </form>
+          ) : (
+            <form className="signup-box" onSubmit={handleSignup}>
+              <h2>Create Account</h2>
+              <p>Student registration</p>
+
+              {signupError && <p className="error">{signupError}</p>}
+
+              <label>Full Name</label>
+              <input value={fullName} onChange={(e) => setFullName(e.target.value)} required />
+
+              <label>Registration Number</label>
+              <input
+                placeholder="2022/E/XXX"
+                value={regNo}
+                onChange={(e) => setRegNo(e.target.value)}
+                required
+              />
+
+              <label>Department</label>
+              <select value={department} onChange={(e) => setDepartment(e.target.value)} required>
+                <option value="">-- Select Department --</option>
+                <option value="CE">Computer Engineering</option>
+                <option value="EEE">Electrical & Electronic Engineering</option>
+              </select>
+
+              <label>Email</label>
+              <input
+                type="email"
+                pattern="20[0-9]{2}e[0-9]{3}@eng\.jfn\.ac\.lk"
+                placeholder="20XXeXXX@eng.jfn.ac.lk"
+                value={email}
+                onChange={(e) => setEmail(e.target.value)}
+                required
+              />
+
+              <label>Password</label>
+              <input
+                type="password"
+                placeholder="Min 8 chars, Aa1@"
+                value={password}
+                onChange={(e) => setPassword(e.target.value)}
+                required
+              />
+              {isWeakPassword && (
+                <small className="error-text">
+                  Must be 8+ characters with uppercase, lowercase, number & symbol
+                </small>
+              )}
+
+              <label>Confirm Password</label>
+              <input
+                type="password"
+                value={confirm}
+                onChange={(e) => setConfirm(e.target.value)}
+                required
+              />
+              {isConfirmMismatch && <small className="error-text">Passwords do not match</small>}
+
+              <button type="submit">Sign Up</button>
+
+              <p>
+                Already have an account?{" "}
+                <span className="link" onClick={() => setShowSignup(false)}>
+                  Sign In
+                </span>
+              </p>
+            </form>
+          )}
+        </div>
       </div>
-
-      {showSignup && <SignupOverlay onClose={() => setShowSignup(false)} />}
-      {showForgot && <ForgotModal onClose={() => setShowForgot(false)} />}
     </div>
   );
 }
