@@ -3,7 +3,7 @@ import { RequestProvider } from "./context/RequestContext";
 
 // Pages
 import Home from "./pages/Home";
-import LoginSignup from "./pages/LoginSignup"; // ✅ combined login + signup
+import LoginSignup from "./pages/LoginSignup"; // Combined login + signup component
 import ResetPassword from "./pages/ResetPassword";
 
 // Student
@@ -57,6 +57,7 @@ function App() {
     <RequestProvider>
       <BrowserRouter>
         <Routes>
+          {/* Home & Auth */}
           <Route path="/" element={<Home />} />
           <Route path="/login" element={<LoginSignup />} />
           <Route path="/signup" element={<LoginSignup />} />
