@@ -1,7 +1,7 @@
 import { useState } from "react";
 import { Link } from "react-router-dom";
 import "../styles/home.css";
-import logo from "../assets/logo.png";
+import logo from "../images/logo.png";
 
 export default function Navbar({ onFeedback }) {
   const [open, setOpen] = useState(false);
