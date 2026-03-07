@@ -1,3 +1,80 @@
+/* navbar*/
+
+/* Navbar Logo */
+.logo-container {
+  display: flex;
+  align-items: center;
+  gap: 10px;
+}
+
+.logo-img {
+  width: 40px;
+  height: 40px;
+}
+
+.logo-text {
+  font-size: 18px;
+  font-weight: 600;
+  color: #111;
+}
+
+/* Login Button */
+.login-btn {
+  background: #2563eb;
+  color: #fff;
+  padding: 8px 18px;
+  border-radius: 8px;
+  font-weight: 500;
+  text-decoration: none;
+  transition: background 0.3s;
+}
+
+.login-btn:hover {
+  background: #1e40af;
+}
+
+/* Mobile responsive */
+@media (max-width: 768px) {
+  .nav-links {
+    position: absolute;
+    top: 60px;
+    right: 0;
+    background: #fff;
+    width: 100%;
+    flex-direction: column;
+    display: none;
+    border-top: 1px solid #ddd;
+  }
+
+  .nav-links.active {
+    display: flex;
+  }
+
+  .nav-links li {
+    padding: 12px;
+    text-align: center;
+  }
+
+  .menu-toggle {
+    display: block;
+  }
+
+  .login-btn {
+    display: none; /* hide login button in mobile menu (optional) */
+  }
+}
+
+/* Smooth scroll for anchor links */
+html {
+  scroll-behavior: smooth;
+}
+
+/* Optional: active link highlighting */
+.nav-links a.active {
+  color: #2563eb;
+  font-weight: 600;
+}
+
 /* =======================================
    RESET & BASE STYLES
 ======================================= */
@@ -248,6 +325,20 @@ body {
   transform: scale(1.2);
   transition: transform 0.3s ease;
 }
+
+.feature-title {
+  font-weight: 600;
+  font-size: 15px;
+  margin-bottom: 6px;
+}
+
+.feature-desc {
+  font-weight: 400;
+  font-size: 13px;
+  color: #4b5563; /* subtle gray for description */
+  line-height: 1.4;
+}
+
 /* =======================================
    CONTACT SECTION
 ======================================= */
