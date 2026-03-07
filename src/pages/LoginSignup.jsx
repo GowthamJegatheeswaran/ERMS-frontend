@@ -31,7 +31,6 @@ export default function LoginSignup() {
   const isWeakPassword = password.length > 0 && !strongPattern.test(password);
   const isConfirmMismatch = confirm.length > 0 && password !== confirm;
 
-  // LOGIN HANDLER
   const handleLogin = async (e) => {
     e.preventDefault();
     setLoginError("");
@@ -46,7 +45,6 @@ export default function LoginSignup() {
     }
   };
 
-  // SIGNUP HANDLER
   const handleSignup = async (e) => {
     e.preventDefault();
     setSignupError("");
@@ -66,7 +64,6 @@ export default function LoginSignup() {
 
     try {
       await registerStudent({ name: fullName, regNo, department, email, password });
-      setShowSignup(false); // switch back to login after signup
       navigate("/login");
     } catch (err) {
       setSignupError(err?.message || "Signup failed");
@@ -77,26 +74,25 @@ export default function LoginSignup() {
     <div className="login-bg">
       <div className="sliding-container">
         {/* LEFT PANEL */}
-        <div className={`login-left ${showSignup ? "slide-left" : ""}`}>
-          {!showSignup ? (
-            <>
-              <h1>Welcome Back!</h1>
-              <p>Enter your personal details to login</p>
-            </>
-          ) : (
+        <div className="login-left">
+          {showSignup ? (
             <>
               <h1>Create Account</h1>
               <p>Join the system to request and manage laboratory equipment</p>
+            </>
+          ) : (
+            <>
+              <h1>Welcome Back!</h1>
+              <p>Enter your personal details to login</p>
             </>
           )}
         </div>
 
         {/* RIGHT FORM */}
-        <div className={`form-container ${showSignup ? "slide-right" : ""}`}>
+        <div className="form-container">
           {!showSignup ? (
             <form className="login-box" onSubmit={handleLogin}>
               <h2>Login</h2>
-              <p>Access your account</p>
               {loginError && <p className="error">{loginError}</p>}
 
               <label>Email</label>
@@ -117,35 +113,25 @@ export default function LoginSignup() {
                 required
               />
 
-              <div className="options">
-                <label className="remember">
-                  <input type="checkbox" /> Remember me
-                </label>
-              </div>
-
               <button type="submit" className="login-btn">Sign In</button>
 
               <p>
                 New here?{" "}
-                <span className="link" onClick={() => setShowSignup(true)}>Sign Up</span>
+                <span className="link" onClick={() => setShowSignup(true)}>
+                  Sign Up
+                </span>
               </p>
             </form>
           ) : (
             <form className="signup-box" onSubmit={handleSignup}>
               <h2>Create Account</h2>
-              <p>Student registration</p>
               {signupError && <p className="error">{signupError}</p>}
 
               <label>Full Name</label>
               <input value={fullName} onChange={(e) => setFullName(e.target.value)} required />
 
               <label>Registration Number</label>
-              <input
-                placeholder="2022/E/XXX"
-                value={regNo}
-                onChange={(e) => setRegNo(e.target.value)}
-                required
-              />
+              <input placeholder="2022/E/XXX" value={regNo} onChange={(e) => setRegNo(e.target.value)} required />
 
               <label>Department</label>
               <select value={department} onChange={(e) => setDepartment(e.target.value)} required>
@@ -155,43 +141,25 @@ export default function LoginSignup() {
               </select>
 
               <label>Email</label>
-              <input
-                type="email"
-                pattern="20[0-9]{2}e[0-9]{3}@eng\.jfn\.ac\.lk"
-                placeholder="20XXeXXX@eng.jfn.ac.lk"
-                value={email}
-                onChange={(e) => setEmail(e.target.value)}
-                required
+              <input type="email" pattern="20[0-9]{2}e[0-9]{3}@eng\.jfn\.ac\.lk"
+                placeholder="20XXeXXX@eng.jfn.ac.lk" value={email} onChange={(e) => setEmail(e.target.value)} required
               />
 
               <label>Password</label>
-              <input
-                type="password"
-                placeholder="Min 8 chars, Aa1@"
-                value={password}
-                onChange={(e) => setPassword(e.target.value)}
-                required
-              />
-              {isWeakPassword && (
-                <small className="error-text">
-                  Must be 8+ characters with uppercase, lowercase, number & symbol
-                </small>
-              )}
+              <input type="password" placeholder="Min 8 chars, Aa1@" value={password} onChange={(e) => setPassword(e.target.value)} required />
+              {isWeakPassword && <small className="error-text">Must be 8+ characters with uppercase, lowercase, number & symbol</small>}
 
               <label>Confirm Password</label>
-              <input
-                type="password"
-                value={confirm}
-                onChange={(e) => setConfirm(e.target.value)}
-                required
-              />
+              <input type="password" value={confirm} onChange={(e) => setConfirm(e.target.value)} required />
               {isConfirmMismatch && <small className="error-text">Passwords do not match</small>}
 
               <button type="submit">Sign Up</button>
 
               <p>
                 Already have an account?{" "}
-                <span className="link" onClick={() => setShowSignup(false)}>Sign In</span>
+                <span className="link" onClick={() => setShowSignup(false)}>
+                  Sign In
+                </span>
               </p>
             </form>
           )}
