@@ -215,3 +215,61 @@
   75% { transform: translateY(-10px) translateX(15px) rotate(135deg); }
   100% { transform: translateY(0px) translateX(0px) rotate(360deg); }
 }
+
+/* Sliding container */
+.sliding-container {
+  position: relative;
+  display: flex;
+  width: 800px;
+  max-width: 90%;
+  border-radius: 25px;
+  overflow: hidden;
+  background: rgba(20, 20, 20, 0.3);
+  backdrop-filter: blur(8px);
+  box-shadow: 0 20px 60px rgba(0,0,0,0.35);
+  transition: all 0.6s ease;
+}
+
+/* Left panel */
+.login-left {
+  flex: 1;
+  padding: 50px 40px;
+  background: rgba(37, 99, 235, 0.15);
+  color: white;
+  display: flex;
+  flex-direction: column;
+  justify-content: center;
+  transition: transform 0.6s ease;
+}
+
+/* Slide left when signup */
+.login-left.slide-left {
+  transform: translateX(-100%);
+  opacity: 0;
+}
+
+/* Right form container */
+.form-container {
+  flex: 1;
+  transition: transform 0.6s ease;
+}
+
+/* Slide form right for signup */
+.form-container.slide-right {
+  transform: translateX(100%);
+}
+
+/* Add same glassmorphism styles for forms (semi-transparent dark panel) */
+.login-box {
+  padding: 40px;
+  display: flex;
+  flex-direction: column;
+  justify-content: center;
+  background: rgba(0,0,0,0.45);
+  backdrop-filter: blur(4px);
+  color: white;
+  border-radius: 0 25px 25px 0;
+  transition: all 0.4s ease;
+}
+
+/* Input focus, hover effects same as before */
