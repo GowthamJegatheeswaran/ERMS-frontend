@@ -150,16 +150,19 @@ export default function ViewRequests() {
       <th style={{ textAlign: "center" }}>Action</th>
     </tr>
   </thead>
-  <tbody>
+<tbody>
   {filtered.map((r) => (
     <tr key={r.requestId}>
       <td style={{ textAlign: "center" }}>{r.requestId}</td>
       <td>{r.labName || "-"}</td>
       <td>{r.lecturerName || "-"}</td>
 
-      {/* Items column: all items in one cell, comma separated */}
+      {/* Items column: all items in one line, comma separated */}
       <td className="items-column">
-        {Array.isArray(r.items) && r.items.map((it) => `${it.equipmentName || `Equipment #${it.equipmentId}`}: ${it.quantity}`).join(", ")}
+        {Array.isArray(r.items) 
+          ? r.items.map((it) => `${it.equipmentName || `Equipment #${it.equipmentId}`}: ${it.quantity}`).join(", ")
+          : "-"
+        }
       </td>
 
       <td style={{ textAlign: "center" }}>{r.fromDate || "-"}</td>
