@@ -72,37 +72,36 @@
 .card-info p { margin: 0; font-size: 20px; font-weight: 600; }
 
 /* Summary Card Colors - Student Lite Style */
-.summary-card.pending { background: #FEF3C7; color: #B45309; }           /* Pending Applications */
+.summary-card.pending { background: #FFF7ED; color: #C2410C; }           /* Pending Applications */
 .summary-card.total { background: #DBEAFE; color: #1E40AF; }              /* Total Requests */
-.summary-card.personal-pending { background: #FFF7ED; color: #C2410C; }   /* Lecturer Pending Requests */
-.summary-card.personal-approved { background: #ECFDF5; color: #065F46; }  /* Lecturer Approved Requests */
 
 /* Quick Actions - Horizontal */
+/* Quick Actions - Student Dashboard Style */
 .actions {
   display: flex;
   flex-direction: row;
-  gap: 16px;
+  gap: 12px;
   margin: 15px 0;
 }
 
 .actions button {
   display: flex;
   align-items: center;
-  gap: 8px;
-  padding: 12px 22px;
-  border: none;
+  gap: 6px;
+  padding: 12px 20px;
+  border: 1px solid #D1D5DB;   /* subtle border */
   border-radius: 8px;
-  background: #2563EB;
-  color: white;
+  background: #F3F4F6;           /* light gray background */
+  color: #111827;                /* dark text */
   font-weight: 600;
   cursor: pointer;
   transition: all 0.2s ease;
 }
 
 .actions button:hover {
-  background: #1D4ED8;
+  background: #E5E7EB;           /* slightly darker on hover */
   transform: translateY(-1px);
-  box-shadow: 0 6px 12px rgba(0,0,0,0.15);
+  box-shadow: 0 4px 8px rgba(0,0,0,0.1);
 }
 
 /* Requests Table */

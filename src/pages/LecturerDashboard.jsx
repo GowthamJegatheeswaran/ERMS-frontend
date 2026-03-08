@@ -87,32 +87,26 @@ export default function LecturerDashboard() {
           {error && <div className="error-message" style={{ color: "red", marginBottom: 10 }}>{error}</div>}
 
           {/* Summary Cards */}
-          <div className="summary-grid">
-            <SummaryCard 
-              title="Pending Applications" 
-              value={counts.pendingApplications} 
-              icon={<AiOutlineHourglass size={28} />} 
-              className="pending"
-            />
-            <SummaryCard 
-              title="My Total Requests" 
-              value={counts.totalMine} 
-              icon={<AiOutlineFileText size={28} />} 
-              className="total"
-            />
-            <SummaryCard 
-              title="Pending Requests" 
-              value={counts.pendingMine} 
-              icon={<AiOutlineClockCircle size={28} />} 
-              className="personal-pending"
-            />
-            <SummaryCard 
-              title="Approved Requests" 
-              value={counts.approvedMine} 
-              icon={<AiOutlineCheckCircle size={28} />} 
-              className="personal-approved"
-            />
-          </div>
+          {/* Summary Cards - Reordered */}
+<div className="summary-grid">
+  {/* 1: Pending Applications */}
+  <SummaryCard 
+    title="Pending Applications" 
+    value={counts.pendingApplications} 
+    icon={<AiOutlineHourglass size={28} />} 
+    className="pending"
+  />
+
+  {/* 2: My Total Requests */}
+  <SummaryCard 
+    title="My Total Requests" 
+    value={counts.totalMine} 
+    icon={<AiOutlineFileText size={28} />} 
+    className="total"
+  />
+
+  
+</div>
 
           {/* Quick Actions Horizontal */}
           <div className="actions">
