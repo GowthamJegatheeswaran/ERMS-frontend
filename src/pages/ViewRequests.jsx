@@ -180,9 +180,16 @@ export default function ViewRequests() {
           ? String(it.itemStatus).toLowerCase()
           : "status-default"
         return (
-          <span key={it.requestItemId} className={`status ${statusClass}`}>
-            {it.itemStatus || "-"}
-          </span>
+          <span
+  key={it.requestItemId}
+  className={`status ${
+    it.itemStatus
+      ? String(it.itemStatus).toLowerCase().replace(/ /g, "_")
+      : "status-default"
+  }`}
+>
+  {it.itemStatus || "-"}
+</span>
         )
       })}
     </div>
