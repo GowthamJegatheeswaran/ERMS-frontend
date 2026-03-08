@@ -1,10 +1,10 @@
-import "../styles/lecturerDashboard.css" // new CSS file
+import { useEffect, useMemo, useState } from "react"
+import { useNavigate } from "react-router-dom"
 import Sidebar from "../components/Sidebar"
 import Topbar from "../components/Topbar"
 import SummaryCard from "../components/SummaryCard"
-import { useEffect, useMemo, useState } from "react"
-import { useNavigate } from "react-router-dom"
 import { LecturerRequestAPI } from "../api/api"
+import "../styles/lecturerDashboard.css"
 
 export default function LecturerDashboard() {
   const navigate = useNavigate()
@@ -13,10 +13,9 @@ export default function LecturerDashboard() {
   const [myRows, setMyRows] = useState([])
   const [loading, setLoading] = useState(false)
   const [error, setError] = useState("")
+  const [lecturerName, setLecturerName] = useState("Lecturer")
 
-  // Get lecturer name from localStorage
-  const lecturerName = localStorage.getItem("name") || "Lecturer"
-
+  // Load dashboard data
   const load = async () => {
     setError("")
     try {
@@ -24,6 +23,8 @@ export default function LecturerDashboard() {
       const [q, my] = await Promise.all([LecturerRequestAPI.queue(), LecturerRequestAPI.my()])
       setQueue(Array.isArray(q) ? q : [])
       setMyRows(Array.isArray(my) ? my : [])
+      // Set lecturer name from API if available
+      if (my?.[0]?.lecturerName) setLecturerName(my[0].lecturerName)
     } catch (e) {
       setError(e?.message || "Failed to load lecturer dashboard")
     } finally {
@@ -33,13 +34,13 @@ export default function LecturerDashboard() {
 
   useEffect(() => {
     load()
+    // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [])
 
   const counts = useMemo(() => {
-    return {
-      pending: queue.length,
-      totalMine: myRows.length
-    }
+    const pending = queue.length
+    const totalMine = myRows.length
+    return { pending, totalMine }
   }, [queue, myRows])
 
   const recentMine = useMemo(() => {
@@ -57,29 +58,32 @@ export default function LecturerDashboard() {
   return (
     <div className="dashboard-container">
       <Sidebar isOpen={sidebarOpen} onClose={() => setSidebarOpen(false)} />
-
       <div className="main-content">
         <Topbar onMenuClick={() => setSidebarOpen(true)} />
 
         <div className="content">
+          {/* Welcome Heading */}
           <h2 className="welcome">Welcome, {lecturerName}</h2>
 
-          {error && <div className="error-message" style={{ color: "red", marginBottom: 10 }}>{error}</div>}
+          {error && <div className="error-message" style={{ color: "red", marginTop: 10 }}>{error}</div>}
 
+          {/* Quick Summary */}
           <h3>Quick Summary</h3>
           <div className="summary-grid">
             <SummaryCard title="Pending Applications" value={counts.pending} />
             <SummaryCard title="My Total Requests" value={counts.totalMine} />
           </div>
 
+          {/* Quick Actions */}
           <h3>Quick Actions</h3>
           <div className="actions">
             <button onClick={() => navigate("/lecturer-new-request")}>New Requests</button>
             <button onClick={() => navigate("/lecturer-applications")}>Applications</button>
           </div>
 
+          {/* Recent Requests */}
           <h3>My Recent Requests</h3>
-          <table className="view-requests-table">
+          <table className="requests-table">
             <thead>
               <tr>
                 <th>Equipment</th>
@@ -104,7 +108,9 @@ export default function LecturerDashboard() {
               })}
               {recentMine.length === 0 && !loading && (
                 <tr>
-                  <td colSpan="4" style={{ textAlign: "center" }}>No requests yet</td>
+                  <td colSpan="4" style={{ textAlign: "center" }}>
+                    No requests yet
+                  </td>
                 </tr>
               )}
             </tbody>
