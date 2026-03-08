@@ -115,12 +115,7 @@ export default function LecturerViewRequests() {
         <Topbar onMenuClick={() => setSidebarOpen(true)} />
 
         <div className="content">
-          <div style={{ display: "flex", justifyContent: "space-between", alignItems: "center" }}>
-            <h2 style={{ marginBottom: "15px" }}>My Requests</h2>
-            <button className="btn-submit" type="button" onClick={load} disabled={loading}>
-              {loading ? "Loading..." : "Refresh"}
-            </button>
-          </div>
+          <h2 style={{ marginBottom: "15px" }}>My Requests</h2>
 
           {error && (
             <div className="error-message" style={{ color: "red", marginBottom: 10 }}>
@@ -170,7 +165,33 @@ export default function LecturerViewRequests() {
                   <td style={{ textAlign: "center" }}>{r.toDate || "-"}</td>
                   <td>{itemText(r._item)}</td>
                   <td style={{ textAlign: "center" }}>
-                    <span className={`status ${String(r._itemStatus || "").toLowerCase()}`}>{r._itemStatus || "-"}</span>
+                    <span
+                      className={`status ${String(r._itemStatus || "").toLowerCase()}`}
+                      style={{
+                        backgroundColor:
+                          r._itemStatus === "ISSUED_CONFIRMED"
+                            ? "#16A34A"
+                            : r._itemStatus === "ISSUED_PENDING_REQUESTER_ACCEPT"
+                            ? "#FBBF24"
+                            : r._itemStatus === "RETURNED"
+                            ? "#2563EB"
+                            : r._itemStatus === "RETURNREQUESTED"
+                            ? "#F97316"
+                            : r._itemStatus === "REJECTED_BY_LECTURER"
+                            ? "#DC2626"
+                            : "#6B7280",
+                        color: r._itemStatus === "ISSUED_PENDING_REQUESTER_ACCEPT" ? "#111" : "white",
+                        padding: "4px 8px",
+                        borderRadius: "6px",
+                        fontWeight: 600,
+                        fontSize: 13,
+                        display: "inline-flex",
+                        alignItems: "center",
+                        justifyContent: "center",
+                      }}
+                    >
+                      {r._itemStatus || "-"}
+                    </span>
                   </td>
                   <td style={{ textAlign: "center" }}>{renderAction(r)}</td>
                 </tr>
@@ -186,11 +207,6 @@ export default function LecturerViewRequests() {
             </tbody>
           </table>
         </div>
-
-        <footer>
-          Faculty of Engineering | University of Jaffna <br />
-          © Copyright 2026. All Rights Reserved - ERS
-        </footer>
       </div>
     </div>
   )
