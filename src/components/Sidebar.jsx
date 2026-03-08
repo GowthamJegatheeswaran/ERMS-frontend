@@ -1,13 +1,3 @@
-import { useLocation, useNavigate } from "react-router-dom"
-import { 
-  AiOutlineDashboard, 
-  AiOutlineFileText, 
-  AiOutlineUser, 
-  AiOutlineHistory, 
-  AiOutlineSetting, 
-  AiOutlineShoppingCart 
-} from "react-icons/ai"
-
 export default function Sidebar({ isOpen, onClose }) {
   const navigate = useNavigate()
   const location = useLocation()
@@ -54,14 +44,7 @@ export default function Sidebar({ isOpen, onClose }) {
       <div className={`sidebar-overlay ${isOpen ? "show" : ""}`} onClick={onClose} />
 
       <div className={`sidebar ${isOpen ? "open" : ""}`}>
-        <div className="sidebar-header">
-          <img src="/images/logo.png" alt="Logo" className="sidebar-logo" />
-          <h2 className="logo-text">Equipment Request System</h2>
-          <button className="close-btn" onClick={onClose} aria-label="Close menu">
-            ✕
-          </button>
-        </div>
-
+        {/* Removed sidebar-header */}
         <ul className="sidebar-menu">
           {menu.map((m) => (
             <li
