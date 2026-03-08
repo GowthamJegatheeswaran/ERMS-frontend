@@ -1,8 +1,8 @@
 import React from "react"
 
-export default function SummaryCard({ title, value, icon, color }) {
+export default function SummaryCard({ title, value, className, icon }) {
   return (
-    <div className="summary-card" style={{ backgroundColor: color || "#2563eb" }}>
+    <div className={`summary-card ${className || ""}`}>
       {icon && <div className="card-icon">{icon}</div>}
       <div className="card-info">
         <h4>{title}</h4>
