@@ -22,7 +22,6 @@ export default function LecturerDashboard() {
   const [error, setError] = useState("")
   const [user, setUser] = useState(null)
 
-  // Load dashboard data
   const load = async () => {
     setError("")
     try {
@@ -48,10 +47,8 @@ export default function LecturerDashboard() {
       }
     }
     fetchUser()
-    // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [])
 
-  // Counts for summary cards
   const counts = useMemo(() => {
     const pendingApplications = queue.length
     const totalMine = myRows.length
@@ -79,7 +76,6 @@ export default function LecturerDashboard() {
         <Topbar onMenuClick={() => setSidebarOpen(true)} />
 
         <div className="content">
-          {/* Welcome Lecturer */}
           <h2 className="welcome">
             Welcome, {user?.fullName || "Lecturer"}!
           </h2>
@@ -116,10 +112,10 @@ export default function LecturerDashboard() {
 
           {/* Quick Actions Horizontal */}
           <div className="actions horizontal">
-            <button onClick={() => navigate("/lecturer-new-request")} style={{ background: "#2563eb", color: "white" }}>
+            <button onClick={() => navigate("/lecturer-new-request")}>
               <AiOutlinePlus size={18} /> New Request
             </button>
-            <button onClick={() => navigate("/lecturer-applications")} style={{ background: "#1d4ed8", color: "white" }}>
+            <button onClick={() => navigate("/lecturer-applications")}>
               <AiOutlineFileText size={18} /> Applications
             </button>
           </div>

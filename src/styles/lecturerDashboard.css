@@ -1,4 +1,4 @@
-/* Lecturer Dashboard CSS - Updated for professional style */
+/* Lecturer Dashboard CSS - Professional & Color Updated */
 
 /* Reset & Base */
 * {
@@ -50,7 +50,7 @@
   margin-bottom: 20px;
 }
 
-/* Summary Cards */
+/* Summary Cards Grid */
 .summary-grid {
   display: grid;
   grid-template-columns: repeat(4, 1fr);
@@ -58,30 +58,30 @@
   margin: 15px 0;
 }
 
+/* Summary Card Style */
 .summary-card {
   display: flex;
   align-items: center;
   justify-content: flex-start;
   padding: 20px;
   border-radius: 12px;
-  box-shadow: 0 4px 12px rgba(0,0,0,0.1);
+  box-shadow: 0 4px 12px rgba(0,0,0,0.08);
   gap: 15px;
   color: white;
 }
 
-/* Lecturer Dashboard Summary Cards Colors */
-.summary-card.pending { background: #fef3c7; color: #b45309; }       /* light yellow */
-.summary-card.approved { background: #d1fae5; color: #047857; }      /* light green */
-.summary-card.rejected { background: #fee2e2; color: #b91c1c; }      /* light red */
-.summary-card.total { background: #dbeafe; color: #1e40af; }         /* light blue */
-.summary-card.personal-pending { background: #fff7ed; color: #c2410c; }  /* lighter yellow */
-.summary-card.personal-approved { background: #ecfdf5; color: #065f46; } /* lighter green */
-
-.card-icon { font-size: 32px; }
+/* Icons inside summary card */
+.card-icon { font-size: 28px; }
 .card-info h4 { margin: 0; font-size: 16px; }
 .card-info p { margin: 0; font-size: 20px; font-weight: 600; }
 
-/* Quick Actions Buttons - Horizontal */
+/* Summary Card Colors (student-dashboard style) */
+.summary-card.pending { background: #FEF3C7; color: #B45309; }            /* Pending Applications */
+.summary-card.total { background: #DBEAFE; color: #1E40AF; }               /* Total Requests */
+.summary-card.personal-pending { background: #FFFBEB; color: #C2410C; }    /* Lecturer Pending Requests */
+.summary-card.personal-approved { background: #ECFDF5; color: #065F46; }   /* Lecturer Approved Requests */
+
+/* Quick Actions - Horizontal */
 .actions {
   display: flex;
   flex-direction: row;
@@ -96,7 +96,7 @@
   padding: 12px 20px;
   border: none;
   border-radius: 8px;
-  background: #2563eb;       /* professional blue */
+  background: #2563EB;
   color: white;
   font-weight: 600;
   cursor: pointer;
@@ -104,7 +104,7 @@
 }
 
 .actions button:hover {
-  background: #1d4ed8;       /* darker blue on hover */
+  background: #1D4ED8;
   transform: translateY(-1px);
   box-shadow: 0 6px 12px rgba(0,0,0,0.15);
 }
@@ -132,12 +132,12 @@
 }
 
 .requests-table th {
-  background: #f3f4f6;
+  background: #F3F4F6;
   font-weight: 600;
 }
 
 .requests-table tbody tr:hover {
-  background: #f3f4f6;
+  background: #F3F4F6;
   transition: background 0.2s ease;
   box-shadow: inset 0 0 0 1px rgba(0,0,0,0.05);
 }
@@ -154,16 +154,16 @@
   color: white;
 }
 
-.status.pending_lecturer_approval { background: #fbbf24; color: #111; }
-.status.approved { background: #16a34a; }
-.status.rejected_by_lecturer { background: #dc2626; }
-.status.issued { background: #2563eb; }
-.status.accepted { background: #2ecc71; }
-.status.returnrequested { background: #f97316; }
-.status.returned { background: #16a34a; }
-.status.status-default { background: #6b7280; }
+.status.pending_lecturer_approval { background: #FBBF24; color: #111; }
+.status.approved { background: #16A34A; }
+.status.rejected_by_lecturer { background: #DC2626; }
+.status.issued { background: #2563EB; }
+.status.accepted { background: #2ECC71; }
+.status.returnrequested { background: #F97316; }
+.status.returned { background: #16A34A; }
+.status.status-default { background: #6B7280; }
 
-/* Items column */
+/* Items Column in Table */
 .requests-table td.items-column {
   white-space: normal;
   text-align: left;
@@ -175,7 +175,7 @@
   gap: 4px;
 }
 
-/* Responsive */
+/* Responsive - Mobile Layout */
 @media (max-width: 768px) {
   .summary-grid {
     grid-template-columns: 1fr;
