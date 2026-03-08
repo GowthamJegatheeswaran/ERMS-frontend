@@ -13,8 +13,10 @@ import {
 } from "react-icons/ai"
 
 import { AiOutlineEye, AiOutlinePlus } from "react-icons/ai"
+import { AuthAPI } from "../api/api"
 
 export default function StudentDashboard() {
+  const [user, setUser] = useState(null)
   const navigate = useNavigate()
   const [sidebarOpen, setSidebarOpen] = useState(false)
 
@@ -36,9 +38,18 @@ export default function StudentDashboard() {
   }
 
   useEffect(() => {
-    load()
-    // eslint-disable-next-line react-hooks/exhaustive-deps
-  }, [])
+  load() // load requests
+
+  const fetchUser = async () => {
+    try {
+      const me = await AuthAPI.me()   // call /api/auth/me
+      setUser(me)                     // store in state
+    } catch (err) {
+      console.error("Failed to fetch user", err)
+    }
+  }
+  fetchUser()
+}, [])
 
   const counts = useMemo(() => {
     const pending = rows.filter((r) => String(r.status) === "PENDING_LECTURER_APPROVAL").length
@@ -68,7 +79,7 @@ export default function StudentDashboard() {
 
         <div className="content">
           <h2 className="welcome">
-  Welcome, {rows.length > 0 ? rows[0].studentName : "Student"}!
+  Welcome, {user?.fullName || "Student"}!
 </h2>
 
           {error && <div className="error-message">{error}</div>}
