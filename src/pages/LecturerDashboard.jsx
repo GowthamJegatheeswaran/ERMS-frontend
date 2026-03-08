@@ -1,11 +1,17 @@
-import "../styles/studentDashboard.css"
+import "../styles/lecturerDashboard.css"
 import Sidebar from "../components/Sidebar"
 import Topbar from "../components/Topbar"
 import SummaryCard from "../components/SummaryCard"
 import { useEffect, useMemo, useState } from "react"
 import { useNavigate } from "react-router-dom"
 import { LecturerRequestAPI, AuthAPI } from "../api/api"
-import { AiOutlinePlus, AiOutlineFileText, AiOutlineClockCircle, AiOutlineCheckCircle } from "react-icons/ai"
+import { 
+  AiOutlinePlus, 
+  AiOutlineFileText, 
+  AiOutlineClockCircle, 
+  AiOutlineCheckCircle, 
+  AiOutlineHourglass 
+} from "react-icons/ai"
 
 export default function LecturerDashboard() {
   const navigate = useNavigate()
@@ -44,10 +50,13 @@ export default function LecturerDashboard() {
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [])
 
+  // Counts for summary cards
   const counts = useMemo(() => {
-    const pending = queue.length
+    const pendingApplications = queue.length
     const totalMine = myRows.length
-    return { pending, totalMine }
+    const pendingMine = myRows.filter(r => String(r.status) === "PENDING_LECTURER_APPROVAL").length
+    const approvedMine = myRows.filter(r => String(r.status) === "APPROVED").length
+    return { pendingApplications, totalMine, pendingMine, approvedMine }
   }, [queue, myRows])
 
   const recentMine = useMemo(() => {
@@ -69,8 +78,10 @@ export default function LecturerDashboard() {
         <Topbar onMenuClick={() => setSidebarOpen(true)} />
 
         <div className="content">
-          {/* Welcome */}
-          <h2 className="welcome">Welcome, {user?.fullName || "Dr. Lecturer"}!</h2>
+          {/* Welcome Lecturer */}
+          <h2 className="welcome">
+            Welcome, {user?.fullName || "Lecturer"}!
+          </h2>
 
           {error && <div className="error-message" style={{ color: "red", marginBottom: 10 }}>{error}</div>}
 
@@ -78,15 +89,27 @@ export default function LecturerDashboard() {
           <div className="summary-grid">
             <SummaryCard 
               title="Pending Applications" 
-              value={counts.pending} 
-              icon={<AiOutlineClockCircle size={28} />} 
-              color="#fbbf24" 
+              value={counts.pendingApplications} 
+              icon={<AiOutlineHourglass size={28} />} 
+              color="#fef3c7" 
             />
             <SummaryCard 
               title="My Total Requests" 
               value={counts.totalMine} 
               icon={<AiOutlineFileText size={28} />} 
-              color="#2563eb" 
+              color="#dbeafe" 
+            />
+            <SummaryCard 
+              title="Pending Requests" 
+              value={counts.pendingMine} 
+              icon={<AiOutlineClockCircle size={28} />} 
+              color="#fde68a" 
+            />
+            <SummaryCard 
+              title="Approved Requests" 
+              value={counts.approvedMine} 
+              icon={<AiOutlineCheckCircle size={28} />} 
+              color="#d1fae5" 
             />
           </div>
 
