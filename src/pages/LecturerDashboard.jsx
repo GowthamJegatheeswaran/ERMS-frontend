@@ -1,4 +1,4 @@
-import "../styles/lecturerDashboard.css"
+import "../styles/studentDashboard.css"
 import Sidebar from "../components/Sidebar"
 import Topbar from "../components/Topbar"
 import SummaryCard from "../components/SummaryCard"
@@ -69,17 +69,25 @@ export default function LecturerDashboard() {
         <Topbar onMenuClick={() => setSidebarOpen(true)} />
 
         <div className="content">
-          {/* Welcome Lecturer */}
-          <h2 className="welcome">
-            Welcome, {user?.fullName || "Lecturer"}!
-          </h2>
+          {/* Welcome */}
+          <h2 className="welcome">Welcome, {user?.fullName || "Dr. Lecturer"}!</h2>
 
           {error && <div className="error-message" style={{ color: "red", marginBottom: 10 }}>{error}</div>}
 
           {/* Summary Cards */}
           <div className="summary-grid">
-            <SummaryCard title="Pending Applications" value={counts.pending} icon={<AiOutlineClockCircle size={28} />} color="#fbbf24" />
-            <SummaryCard title="My Total Requests" value={counts.totalMine} icon={<AiOutlineFileText size={28} />} color="#2563eb" />
+            <SummaryCard 
+              title="Pending Applications" 
+              value={counts.pending} 
+              icon={<AiOutlineClockCircle size={28} />} 
+              color="#fbbf24" 
+            />
+            <SummaryCard 
+              title="My Total Requests" 
+              value={counts.totalMine} 
+              icon={<AiOutlineFileText size={28} />} 
+              color="#2563eb" 
+            />
           </div>
 
           {/* Quick Actions Horizontal */}
@@ -112,7 +120,9 @@ export default function LecturerDashboard() {
                     <td style={{ textAlign: "center" }}>{p.qty}</td>
                     <td style={{ textAlign: "center" }}>{r.fromDate || "-"}</td>
                     <td style={{ textAlign: "center" }}>
-                      <span className={`status ${String(r.status || "").toLowerCase()}`}>{r.status || "-"}</span>
+                      <span className={`status ${String(r.status || "").toLowerCase()}`}>
+                        {r.status || "-"}
+                      </span>
                     </td>
                   </tr>
                 )
