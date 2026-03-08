@@ -151,31 +151,42 @@ export default function ViewRequests() {
     </tr>
   </thead>
   <tbody>
-    {filtered.map((r) => (
-      <tr key={`${r.requestId}-${r?._item?.requestItemId}`}>
-        <td style={{ textAlign: "center" }}>{r.requestId}</td>
-        <td>{r.labName || "-"}</td>
-        <td>{r.lecturerName || "-"}</td>
-        <td>{itemText(r._item)}</td>
-        <td style={{ textAlign: "center" }}>{r.fromDate || "-"}</td>
-        <td style={{ textAlign: "center" }}>{r.toDate || "-"}</td>
-        <td style={{ textAlign: "center" }}>
-          <span className={`status ${String(r._itemStatus || "").toLowerCase()}`}>
-            {r._itemStatus || "-"}
-          </span>
-        </td>
-        <td style={{ textAlign: "center" }}>{renderAction(r)}</td>
-      </tr>
-    ))}
+  {filtered.map((r) => (
+    <tr key={`${r.requestId}-${r?._item?.requestItemId}`}>
+      <td style={{ textAlign: "center" }}>{r.requestId}</td>
+      <td>{r.labName || "-"}</td>
+      <td>{r.lecturerName || "-"}</td>
 
-    {filtered.length === 0 && !loading && (
-      <tr>
-        <td colSpan="8" style={{ textAlign: "center" }}>
-          No requests found
-        </td>
-      </tr>
-    )}
-  </tbody>
+      {/* Items column: all items inline */}
+      <td className="items-column">
+        <ul>
+          {Array.isArray(r.items) && r.items.map((it, idx) => (
+            <li key={idx}>
+              {it.equipmentName || `Equipment #${it.equipmentId}`}: {it.quantity}
+            </li>
+          ))}
+        </ul>
+      </td>
+
+      <td style={{ textAlign: "center" }}>{r.fromDate || "-"}</td>
+      <td style={{ textAlign: "center" }}>{r.toDate || "-"}</td>
+      <td style={{ textAlign: "center" }}>
+        <span className={`status ${String(r._itemStatus || "").toLowerCase()}`}>
+          {r._itemStatus || "-"}
+        </span>
+      </td>
+      <td style={{ textAlign: "center" }}>{renderAction(r)}</td>
+    </tr>
+  ))}
+
+  {filtered.length === 0 && !loading && (
+    <tr>
+      <td colSpan="8" style={{ textAlign: "center" }}>
+        No requests found
+      </td>
+    </tr>
+  )}
+</tbody>
 </table>
         </div>
       </div>
