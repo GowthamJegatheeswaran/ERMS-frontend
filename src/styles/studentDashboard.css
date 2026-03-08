@@ -117,7 +117,7 @@
   height: 100vh;
   display: flex;
   flex-direction: column;
-  padding-top: 60px; /* equal to topbar height */
+  padding-top: 80px; /* equal to topbar height */
 }
 
 
