@@ -67,7 +67,9 @@ export default function StudentDashboard() {
         <Topbar onMenuClick={() => setSidebarOpen(true)} />
 
         <div className="content">
-          <h2 className="welcome">Student Dashboard</h2>
+          <h2 className="welcome">
+  Welcome, {rows.length > 0 ? rows[0].studentName : "Student"}!
+</h2>
 
           {error && <div className="error-message">{error}</div>}
 
