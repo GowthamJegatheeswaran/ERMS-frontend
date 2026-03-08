@@ -501,12 +501,13 @@ footer {
 
 /* SIDEBAR */
 /* Sidebar professional style */
+/* Sidebar professional style */
 .sidebar {
   position: fixed;
-  top: 0;
+  top: 60px; /* below the topbar */
   left: 0;
-  width: 220px; /* modern compact width */
-  height: 100vh;
+  width: 220px;
+  height: calc(100vh - 60px); /* full height minus topbar */
   background: linear-gradient(180deg, #1a2533 0%, #1c3b57 100%);
   color: #fff;
   padding: 20px 0;
