@@ -155,12 +155,15 @@
   display: flex;
   justify-content: space-between;
   align-items: center;
-  padding: 12px 20px;
-  background: #ffffff; /* light white */
-  box-shadow: 0 2px 6px rgba(0, 0, 0, 0.08); /* subtle shadow */
-  border-bottom: 1px solid #e5e7eb;
-  position: sticky;
+  height: 60px;
+  padding: 0 24px;
+  background: #f8f9fa;  /* light professional color */
+  border-bottom: 1px solid #e0e0e0;
+  box-shadow: 0 2px 6px rgba(0,0,0,0.05);
+  width: 100%;
+  position: fixed;
   top: 0;
+  left: 0;
   z-index: 100;
 }
 
@@ -171,20 +174,20 @@
 }
 
 .topbar-logo {
-  height: 32px;
-  width: 32px;
+  height: 40px;
+  width: auto;
 }
 
 .topbar-title {
   font-size: 18px;
   font-weight: 600;
-  color: #111827;
+  color: #111;
 }
 
 .topbar-right {
   display: flex;
   align-items: center;
-  gap: 12px;
+  gap: 16px;
 }
 
 /* PAGE CONTENT */
