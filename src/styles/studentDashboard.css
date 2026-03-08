@@ -860,3 +860,73 @@ footer {
 .support-card a:hover {
   text-decoration: underline;
 }
+
+.help-grid {
+  display: grid;
+  grid-template-columns: repeat(auto-fit, minmax(280px, 1fr));
+  gap: 24px;
+  margin-top: 20px;
+}
+
+.help-card {
+  background: #ffffff;
+  border-radius: 12px;
+  padding: 20px;
+  box-shadow: 0 8px 20px rgba(0,0,0,0.08);
+  transition: transform 0.2s ease, box-shadow 0.2s ease;
+}
+
+.help-card:hover {
+  transform: translateY(-4px);
+  box-shadow: 0 12px 24px rgba(0,0,0,0.12);
+}
+
+.help-card-header {
+  display: flex;
+  align-items: center;
+  gap: 10px;
+  margin-bottom: 16px;
+}
+
+.help-card-header h3 {
+  margin: 0;
+  font-size: 18px;
+  color: #111827;
+}
+
+.help-list {
+  list-style: none;
+  padding: 0;
+  margin: 0;
+}
+
+.help-list li {
+  margin-bottom: 12px;
+}
+
+.help-list li strong {
+  display: block;
+  margin-bottom: 4px;
+  color: #111827;
+}
+
+.help-list li p {
+  margin: 0;
+  color: #4b5563;
+  font-size: 14px;
+}
+
+.help-card a {
+  color: #2563eb;
+  text-decoration: none;
+}
+
+.help-card a:hover {
+  text-decoration: underline;
+}
+
+.page-title {
+  font-size: 28px;
+  font-weight: 600;
+  margin-bottom: 24px;
+}
