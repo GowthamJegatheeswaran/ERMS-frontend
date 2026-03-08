@@ -7,7 +7,7 @@ export default function LoginSignup() {
   const navigate = useNavigate()
   const { authenticate, registerStudent } = useRequests()
 
-  // Toggle form
+  // Toggle between login/signup
   const [showSignup, setShowSignup] = useState(false)
 
   // ---------- LOGIN STATE ----------
@@ -37,11 +37,35 @@ export default function LoginSignup() {
   const handleLogin = async (e) => {
     e.preventDefault()
     setLoginError("")
-    if (!loginEmail || !loginPassword) return setLoginError("Please fill all fields")
+
+    if (!loginEmail || !loginPassword) {
+      setLoginError("Please fill all fields")
+      return
+    }
 
     try {
       const user = await authenticate(loginEmail, loginPassword)
-      navigate(user.redirect)
+      
+      // Role-based redirect
+      switch (user.role) {
+        case "STUDENT":
+          navigate("/student/dashboard")
+          break
+        case "LECTURER":
+          navigate("/lecturer/dashboard")
+          break
+        case "HOD":
+          navigate("/hod/dashboard")
+          break
+        case "ADMIN":
+          navigate("/admin/dashboard")
+          break
+        case "LTO":
+          navigate("/lto/dashboard")
+          break
+        default:
+          navigate("/dashboard")
+      }
     } catch (err) {
       setLoginError(err?.message || "Invalid email or password")
     }
@@ -69,7 +93,7 @@ export default function LoginSignup() {
     try {
       await registerStudent({ name: fullName, regNo, department, email, password })
 
-      // Clear form
+      // Clear signup form
       setFullName("")
       setRegNo("")
       setDepartment("")
@@ -105,6 +129,7 @@ export default function LoginSignup() {
 
         {/* RIGHT FORM */}
         <div className="form-container">
+          {/* ---------- LOGIN FORM ---------- */}
           {!showSignup ? (
             <form className="login-box" onSubmit={handleLogin}>
               <h2>Login</h2>
@@ -138,6 +163,7 @@ export default function LoginSignup() {
               </p>
             </form>
           ) : (
+            /* ---------- SIGNUP FORM ---------- */
             <form className="signup-box" onSubmit={handleSignup}>
               <h2>Create Account</h2>
               {signupError && <p className="error">{signupError}</p>}
