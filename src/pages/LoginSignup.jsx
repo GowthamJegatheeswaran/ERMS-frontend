@@ -7,7 +7,6 @@ export default function LoginSignup() {
   const navigate = useNavigate()
   const { authenticate, registerStudent } = useRequests()
 
-  // Toggle between login/signup
   const [showSignup, setShowSignup] = useState(false)
 
   // ---------- LOGIN STATE ----------
@@ -45,27 +44,24 @@ export default function LoginSignup() {
 
     try {
       const user = await authenticate(loginEmail, loginPassword)
-      
-      // Role-based redirect
-      switch (user.role) {
-        case "STUDENT":
-          navigate("/student/dashboard")
-          break
-        case "LECTURER":
-          navigate("/lecturer/dashboard")
-          break
-        case "HOD":
-          navigate("/hod/dashboard")
-          break
-        case "ADMIN":
-          navigate("/admin/dashboard")
-          break
-        case "LTO":
-          navigate("/lto/dashboard")
-          break
-        default:
-          navigate("/dashboard")
+      if (!user || !user.role) {
+        setLoginError("Invalid login credentials")
+        return
       }
+
+      // Save role in localStorage
+      localStorage.setItem("role", user.role.toLowerCase())
+
+      // Redirect based on role
+      const redirectPaths = {
+        student: "/student-dashboard",
+        lecturer: "/lecturer-dashboard",
+        to: "/to-dashboard",
+        hod: "/hod-dashboard",
+        admin: "/admin-dashboard",
+      }
+
+      navigate(redirectPaths[user.role.toLowerCase()] || "/login")
     } catch (err) {
       setLoginError(err?.message || "Invalid email or password")
     }
@@ -93,16 +89,16 @@ export default function LoginSignup() {
     try {
       await registerStudent({ name: fullName, regNo, department, email, password })
 
-      // Clear signup form
+      // Clear form
       setFullName("")
       setRegNo("")
       setDepartment("")
       setEmail("")
       setPassword("")
       setConfirm("")
+
       setSignupError("")
       setSignupSuccess("Signup successful! You can now log in.")
-
       setTimeout(() => setSignupSuccess(""), 3000)
     } catch (err) {
       setSignupError(err?.message || "Signup failed")
@@ -129,7 +125,6 @@ export default function LoginSignup() {
 
         {/* RIGHT FORM */}
         <div className="form-container">
-          {/* ---------- LOGIN FORM ---------- */}
           {!showSignup ? (
             <form className="login-box" onSubmit={handleLogin}>
               <h2>Login</h2>
@@ -157,13 +152,10 @@ export default function LoginSignup() {
 
               <p>
                 New here?{" "}
-                <span className="link" onClick={() => setShowSignup(true)}>
-                  Sign Up
-                </span>
+                <span className="link" onClick={() => setShowSignup(true)}>Sign Up</span>
               </p>
             </form>
           ) : (
-            /* ---------- SIGNUP FORM ---------- */
             <form className="signup-box" onSubmit={handleSignup}>
               <h2>Create Account</h2>
               {signupError && <p className="error">{signupError}</p>}
@@ -183,8 +175,13 @@ export default function LoginSignup() {
               </select>
 
               <label>Email</label>
-              <input type="email" pattern="20[0-9]{2}e[0-9]{3}@eng\.jfn\.ac\.lk"
-                placeholder="20XXeXXX@eng.jfn.ac.lk" value={email} onChange={(e) => setEmail(e.target.value)} required
+              <input
+                type="email"
+                pattern="20[0-9]{2}e[0-9]{3}@eng\.jfn\.ac\.lk"
+                placeholder="20XXeXXX@eng.jfn.ac.lk"
+                value={email}
+                onChange={(e) => setEmail(e.target.value)}
+                required
               />
 
               <label>Password</label>
@@ -199,9 +196,7 @@ export default function LoginSignup() {
 
               <p>
                 Already have an account?{" "}
-                <span className="link" onClick={() => setShowSignup(false)}>
-                  Sign In
-                </span>
+                <span className="link" onClick={() => setShowSignup(false)}>Sign In</span>
               </p>
             </form>
           )}
