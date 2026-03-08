@@ -9,21 +9,25 @@ import { LecturerRequestAPI } from "../api/api"
 export default function LecturerDashboard() {
   const navigate = useNavigate()
   const [sidebarOpen, setSidebarOpen] = useState(false)
-
   const [queue, setQueue] = useState([])
   const [myRows, setMyRows] = useState([])
   const [loading, setLoading] = useState(false)
   const [error, setError] = useState("")
 
+  const lecturerName = localStorage.getItem("name") || "Lecturer"
+
   const load = async () => {
     setError("")
     try {
       setLoading(true)
-      const [q, my] = await Promise.all([LecturerRequestAPI.queue(), LecturerRequestAPI.my()])
+      const [q, my] = await Promise.all([
+        LecturerRequestAPI.queue(),
+        LecturerRequestAPI.my(),
+      ])
       setQueue(Array.isArray(q) ? q : [])
       setMyRows(Array.isArray(my) ? my : [])
     } catch (e) {
-      setError(e?.message || "Failed to load lecturer dashboard")
+      setError(e?.message || "Failed to load dashboard")
     } finally {
       setLoading(false)
     }
@@ -31,19 +35,18 @@ export default function LecturerDashboard() {
 
   useEffect(() => {
     load()
-    // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [])
 
   const counts = useMemo(() => {
-    // Lecturer approvals queue = pending list
     const pending = queue.length
-    // Lecturer's own created requests (approved path)
     const totalMine = myRows.length
     return { pending, totalMine }
   }, [queue, myRows])
 
   const recentMine = useMemo(() => {
-    return [...myRows].sort((a, b) => (b.requestId || 0) - (a.requestId || 0)).slice(0, 3)
+    return [...myRows]
+      .sort((a, b) => (b.requestId || 0) - (a.requestId || 0))
+      .slice(0, 3)
   }, [myRows])
 
   const itemsPreview = (r) => {
@@ -57,34 +60,32 @@ export default function LecturerDashboard() {
   return (
     <div className="dashboard-container">
       <Sidebar isOpen={sidebarOpen} onClose={() => setSidebarOpen(false)} />
-
       <div className="main-content">
         <Topbar onMenuClick={() => setSidebarOpen(true)} />
 
         <div className="content">
-          <div style={{ display: "flex", justifyContent: "space-between", alignItems: "center" }}>
-            <h2 className="welcome" style={{ margin: 0 }}>Lecturer Dashboard</h2>
-            <button className="btn-submit" type="button" onClick={load} disabled={loading}>
-              {loading ? "Loading..." : "Refresh"}
-            </button>
-          </div>
+          {/* Lecturer Name */}
+          <h2 className="welcome">Welcome, {lecturerName}</h2>
 
-          {error && <div className="error-message" style={{ color: "red", marginTop: 10 }}>{error}</div>}
+          {error && <div className="error-message">{error}</div>}
 
-          <h3>Quick Summary Card</h3>
+          {/* Summary Cards */}
+          <h3>Quick Summary</h3>
           <div className="summary-grid">
             <SummaryCard title="Pending Applications" value={counts.pending} />
             <SummaryCard title="My Total Requests" value={counts.totalMine} />
           </div>
 
+          {/* Quick Actions */}
           <h3>Quick Actions</h3>
           <div className="actions">
             <button onClick={() => navigate("/lecturer-new-request")}>New Requests</button>
             <button onClick={() => navigate("/lecturer-applications")}>Applications</button>
           </div>
 
+          {/* Recent Requests */}
           <h3>My Recent Requests</h3>
-          <table className="requests-table">
+          <table className="requests-table view-requests-table">
             <thead>
               <tr>
                 <th>Equipment</th>
@@ -102,25 +103,23 @@ export default function LecturerDashboard() {
                     <td style={{ textAlign: "center" }}>{p.qty}</td>
                     <td style={{ textAlign: "center" }}>{r.fromDate || "-"}</td>
                     <td style={{ textAlign: "center" }}>
-                      <span className={`status ${String(r.status || "").toLowerCase()}`}>{r.status || "-"}</span>
+                      <span className={`status ${String(r.status || "").toLowerCase()}`}>
+                        {r.status || "-"}
+                      </span>
                     </td>
                   </tr>
                 )
               })}
               {recentMine.length === 0 && !loading && (
                 <tr>
-                  <td colSpan="4" style={{ textAlign: "center" }}>
-                    No requests yet
-                  </td>
+                  <td colSpan="4" style={{ textAlign: "center" }}>No requests yet</td>
                 </tr>
               )}
             </tbody>
           </table>
         </div>
 
-        <footer>
-          Faculty of Engineering | University of Jaffna <br />© Copyright 2026. All Rights Reserved - ERS
-        </footer>
+        {/* Footer removed */}
       </div>
     </div>
   )
