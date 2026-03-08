@@ -22,6 +22,7 @@ export default function LecturerDashboard() {
   const [error, setError] = useState("")
   const [user, setUser] = useState(null)
 
+  // Load dashboard data
   const load = async () => {
     setError("")
     try {
@@ -47,8 +48,10 @@ export default function LecturerDashboard() {
       }
     }
     fetchUser()
+    // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [])
 
+  // Counts for summary cards
   const counts = useMemo(() => {
     const pendingApplications = queue.length
     const totalMine = myRows.length
@@ -76,6 +79,7 @@ export default function LecturerDashboard() {
         <Topbar onMenuClick={() => setSidebarOpen(true)} />
 
         <div className="content">
+          {/* Welcome Lecturer */}
           <h2 className="welcome">
             Welcome, {user?.fullName || "Lecturer"}!
           </h2>
@@ -111,11 +115,11 @@ export default function LecturerDashboard() {
           </div>
 
           {/* Quick Actions Horizontal */}
-          <div className="actions horizontal">
-            <button onClick={() => navigate("/lecturer-new-request")}>
+          <div className="actions">
+            <button className="btn-new-request" onClick={() => navigate("/lecturer-new-request")}>
               <AiOutlinePlus size={18} /> New Request
             </button>
-            <button onClick={() => navigate("/lecturer-applications")}>
+            <button className="btn-new-request" onClick={() => navigate("/lecturer-applications")}>
               <AiOutlineFileText size={18} /> Applications
             </button>
           </div>
@@ -134,15 +138,17 @@ export default function LecturerDashboard() {
             <tbody>
               {recentMine.map((r) => {
                 const p = itemsPreview(r)
+                const statusClass = String(r.status || "").toLowerCase()
                 return (
                   <tr key={r.requestId}>
                     <td>{p.text}</td>
                     <td style={{ textAlign: "center" }}>{p.qty}</td>
                     <td style={{ textAlign: "center" }}>{r.fromDate || "-"}</td>
-                    <td style={{ textAlign: "center" }}>
-                      <span className={`status ${String(r.status || "").toLowerCase()}`}>
-                        {r.status || "-"}
-                      </span>
+                    <td style={{ textAlign: "center", display: "flex", alignItems: "center", justifyContent: "center", gap: "6px" }}>
+                      {statusClass === "pending_lecturer_approval" && <AiOutlineClockCircle color="#fbbf24" />}
+                      {statusClass === "approved" && <AiOutlineCheckCircle color="#16a34a" />}
+                      {statusClass === "rejected_by_lecturer" && <AiOutlineCloseCircle color="#dc2626" />}
+                      <span>{r.status || "-"}</span>
                     </td>
                   </tr>
                 )

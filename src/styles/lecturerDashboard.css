@@ -1,4 +1,4 @@
-/* Lecturer Dashboard CSS - Professional & Color Updated */
+/* Lecturer Dashboard CSS - Student-style Colors & Horizontal Actions */
 
 /* Reset & Base */
 * {
@@ -70,18 +70,18 @@
   color: white;
 }
 
-/* Icons inside summary card */
+/* Summary Card Icons & Text */
 .card-icon { font-size: 28px; }
 .card-info h4 { margin: 0; font-size: 16px; }
 .card-info p { margin: 0; font-size: 20px; font-weight: 600; }
 
-/* Summary Card Colors (student-dashboard style) */
+/* Summary Card Colors */
 .summary-card.pending { background: #FEF3C7; color: #B45309; }            /* Pending Applications */
 .summary-card.total { background: #DBEAFE; color: #1E40AF; }               /* Total Requests */
 .summary-card.personal-pending { background: #FFFBEB; color: #C2410C; }    /* Lecturer Pending Requests */
 .summary-card.personal-approved { background: #ECFDF5; color: #065F46; }   /* Lecturer Approved Requests */
 
-/* Quick Actions - Horizontal */
+/* Quick Actions - Horizontal Buttons */
 .actions {
   display: flex;
   flex-direction: row;
