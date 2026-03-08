@@ -815,3 +815,48 @@ footer {
   flex-direction: column;
   gap: 4px;
 }
+
+.support-cards {
+  display: grid;
+  grid-template-columns: repeat(auto-fit, minmax(280px, 1fr));
+  gap: 20px;
+  margin-top: 20px;
+}
+
+.support-card {
+  background: #fff;
+  padding: 20px;
+  border-radius: 12px;
+  box-shadow: 0 4px 12px rgba(0,0,0,0.08);
+}
+
+.support-card h3 {
+  margin-bottom: 12px;
+  font-size: 18px;
+  color: #111827;
+}
+
+.support-card ul {
+  list-style: none;
+  padding: 0;
+  margin: 0;
+}
+
+.support-card .faq-item {
+  margin-bottom: 10px;
+}
+
+.support-card .faq-item p {
+  margin: 4px 0 0;
+  color: #4b5563;
+  font-size: 14px;
+}
+
+.support-card a {
+  color: #2563eb;
+  text-decoration: none;
+}
+
+.support-card a:hover {
+  text-decoration: underline;
+}
