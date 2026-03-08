@@ -772,7 +772,6 @@ footer {
   display: inline-flex;
   align-items: center;
   justify-content: center;
-  gap: 4px;
   padding: 4px 8px;
   border-radius: 6px;
   font-weight: 600;
@@ -782,19 +781,19 @@ footer {
 
 /* Lecturer/Student workflow */
 .view-requests-table .pending_lecturer_approval { background: #f59e0b; color: #111; }
-.view-requests-table .approved { background: #16a34a; }                          /* green */
-.view-requests-table .rejected_by_lecturer { background: #dc2626; }              /* red */
-.view-requests-table .pending { background: #fbbf24; }                            /* yellow */
-.view-requests-table .rejected { background: #e74c3c; }                            /* red */
+.view-requests-table .approved { background: #16a34a; }                          
+.view-requests-table .rejected_by_lecturer { background: #dc2626; }              
+.view-requests-table .pending { background: #fbbf24; }                            
+.view-requests-table .rejected { background: #e74c3c; }                            
 
 /* Lab Technical Officer (LTO) workflow */
-.view-requests-table .issued { background: #2563eb; }                              /* blue */
-.view-requests-table .accepted { background: #2ecc71; }                            /* green */
-.view-requests-table .returnrequested { background: #f97316; }                     /* orange */
-.view-requests-table .returned { background: #16a34a; }                             /* green */
+.view-requests-table .issued { background: #2563eb; }                              
+.view-requests-table .accepted { background: #2ecc71; }                            
+.view-requests-table .returnrequested { background: #f97316; }                     
+.view-requests-table .returned { background: #16a34a; }                            
 
-/* Fallback for any unknown status */
-.view-requests-table .status-default { background: #6b7280; }                       /* gray */
+/* Fallback for unknown status */
+.view-requests-table .status-default { background: #6b7280; }
 /* ========= Items column styling ========= */
 /* Display all items in one line, comma separated */
 .view-requests-table td.items-column {

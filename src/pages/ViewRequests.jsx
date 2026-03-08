@@ -30,10 +30,7 @@ export default function ViewRequests() {
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [])
 
-  const itemText = (it) => {
-    if (!it) return "-"
-    return `${it.equipmentName || `Equipment #${it.equipmentId}`}: ${it.quantity}`
-  }
+  const itemText = (it) => it ? `${it.equipmentName || `Equipment #${it.equipmentId}`}: ${it.quantity}` : "-"
 
   const filtered = useMemo(() => {
     const q = query.trim().toLowerCase()
@@ -96,7 +93,7 @@ export default function ViewRequests() {
     return <span style={{ color: "#777" }}></span>
   }
 
-  // Build status filter options from data
+  // Build status filter options dynamically
   const statusOptions = useMemo(() => {
     const set = new Set()
     for (const r of rows || []) {
@@ -111,13 +108,10 @@ export default function ViewRequests() {
   return (
     <div className="dashboard-container">
       <Sidebar isOpen={sidebarOpen} onClose={() => setSidebarOpen(false)} />
-
       <div className="main-content">
         <Topbar onMenuClick={() => setSidebarOpen(true)} />
-
         <div className="content">
           <h2 style={{ marginBottom: "15px" }}>My Requests</h2>
-
           {error && <div className="error-message" style={{ color: "red", marginBottom: 10 }}>{error}</div>}
 
           <div className="request-toolbar">
@@ -127,99 +121,72 @@ export default function ViewRequests() {
               onChange={(e) => setQuery(e.target.value)}
               placeholder="Search lab, lecturer, purpose, items..."
             />
-
             <select className="request-filter" value={statusFilter} onChange={(e) => setStatusFilter(e.target.value)}>
-              {statusOptions.map((s) => (
-                <option key={s} value={s}>
-                  {s}
-                </option>
-              ))}
+              {statusOptions.map((s) => <option key={s} value={s}>{s}</option>)}
             </select>
           </div>
 
           <table className="requests-table view-requests-table">
-  <thead>
-    <tr>
-      <th>Request_ID</th>
-      <th>Lab</th>
-      <th>Lecturer</th>
-      <th>Items</th>
-      <th>From</th>
-      <th>To</th>
-      <th>Status</th>
-      <th style={{ textAlign: "center" }}>Action</th>
-    </tr>
-  </thead>
-<tbody>
-  {rows.map((r) => (
-    <tr key={r.requestId}>
-      <td style={{ textAlign: "center" }}>{r.requestId}</td>
-      <td>{r.labName || "-"}</td>
-      <td>{r.lecturerName || "-"}</td>
-
-      {/* Items column: names + quantities only */}
-      <td className="items-column">
-        {Array.isArray(r.items) && r.items.length > 0
-          ? r.items.map((it) => `${it.equipmentName || `Equipment #${it.equipmentId}`}: ${it.quantity}`).join(", ")
-          : "-"
-        }
-      </td>
-
-      {/* From / To */}
-      <td style={{ textAlign: "center" }}>{r.fromDate || "-"}</td>
-      <td style={{ textAlign: "center" }}>{r.toDate || "-"}</td>
-
-      {/* Status column: multiple pills if multiple items */}
-      {/* Status column: multiple pills if multiple items */}
-<td style={{ textAlign: "center" }}>
-  {Array.isArray(r.items) && r.items.length > 0 ? (
-    <div style={{ display: "flex", flexDirection: "column", gap: "4px" }}>
-      {r.items.map((it) => {
-        // dynamically assign class, fallback to 'status-default' if unknown
-        const statusClass = it.itemStatus
-          ? String(it.itemStatus).toLowerCase()
-          : "status-default"
-        return (
-          <span
-  key={it.requestItemId}
-  className={`status ${
-    it.itemStatus
-      ? String(it.itemStatus).toLowerCase().replace(/ /g, "_")
-      : "status-default"
-  }`}
->
-  {it.itemStatus || "-"}
-</span>
-        )
-      })}
-    </div>
-  ) : (
-    "-"
-  )}
-</td>
-
-      {/* Action column: multiple buttons if multiple items */}
-      <td style={{ textAlign: "center" }}>
-        {Array.isArray(r.items) && r.items.length > 0 ? (
-          <div style={{ display: "flex", flexDirection: "column", gap: "4px" }}>
-            {r.items.map((it) => renderAction({ _item: it, _itemStatus: it.itemStatus }))}
-          </div>
-        ) : (
-          "-"
-        )}
-      </td>
-    </tr>
-  ))}
-
-  {rows.length === 0 && !loading && (
-    <tr>
-      <td colSpan="8" style={{ textAlign: "center" }}>
-        No requests found
-      </td>
-    </tr>
-  )}
-</tbody>
-</table>
+            <thead>
+              <tr>
+                <th>Request_ID</th>
+                <th>Lab</th>
+                <th>Lecturer</th>
+                <th>Items</th>
+                <th>From</th>
+                <th>To</th>
+                <th>Status</th>
+                <th style={{ textAlign: "center" }}>Action</th>
+              </tr>
+            </thead>
+            <tbody>
+              {rows.map((r) => (
+                <tr key={r.requestId}>
+                  <td style={{ textAlign: "center" }}>{r.requestId}</td>
+                  <td>{r.labName || "-"}</td>
+                  <td>{r.lecturerName || "-"}</td>
+                  <td className="items-column">
+                    {Array.isArray(r.items) && r.items.length > 0
+                      ? r.items.map((it) => `${it.equipmentName || `Equipment #${it.equipmentId}`}: ${it.quantity}`).join(", ")
+                      : "-"
+                    }
+                  </td>
+                  <td style={{ textAlign: "center" }}>{r.fromDate || "-"}</td>
+                  <td style={{ textAlign: "center" }}>{r.toDate || "-"}</td>
+                  <td style={{ textAlign: "center" }}>
+                    {Array.isArray(r.items) && r.items.length > 0 ? (
+                      <div style={{ display: "flex", flexDirection: "column", gap: "4px" }}>
+                        {r.items.map((it) => (
+                          <span
+                            key={it.requestItemId}
+                            className={`status ${
+                              it.itemStatus
+                                ? String(it.itemStatus).toLowerCase().replace(/ /g, "_")
+                                : "status-default"
+                            }`}
+                          >
+                            {it.itemStatus || "-"}
+                          </span>
+                        ))}
+                      </div>
+                    ) : "-"}
+                  </td>
+                  <td style={{ textAlign: "center" }}>
+                    {Array.isArray(r.items) && r.items.length > 0 ? (
+                      <div style={{ display: "flex", flexDirection: "column", gap: "4px" }}>
+                        {r.items.map((it) => renderAction({ _item: it, _itemStatus: it.itemStatus }))}
+                      </div>
+                    ) : "-"}
+                  </td>
+                </tr>
+              ))}
+              {rows.length === 0 && !loading && (
+                <tr>
+                  <td colSpan="8" style={{ textAlign: "center" }}>No requests found</td>
+                </tr>
+              )}
+            </tbody>
+          </table>
         </div>
       </div>
     </div>
