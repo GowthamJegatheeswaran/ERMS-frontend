@@ -1,6 +1,6 @@
 /* ========================================
    Lecturer Dashboard CSS
-   Based on studentDashboard.css
+   Matches Student Dashboard Style
    ======================================== */
 
 /* Reset & Base */
@@ -61,7 +61,7 @@
 .welcome {
   font-size: 28px;
   font-weight: 600;
-  margin-bottom: 15px;
+  margin-bottom: 20px;
 }
 
 /* Summary Cards */
@@ -83,31 +83,38 @@
   color: white;
 }
 
+.card-icon { font-size: 32px; }
+.card-info h4 { margin: 0; font-size: 16px; }
+.card-info p { margin: 0; font-size: 20px; font-weight: 600; }
+
 .summary-card.pending { background: #fef3c7; color: #b45309; }
 .summary-card.approved { background: #d1fae5; color: #047857; }
 .summary-card.rejected { background: #fee2e2; color: #b91c1c; }
 .summary-card.total { background: #dbeafe; color: #1e40af; }
 
-/* Quick Actions Buttons */
+/* Quick Actions Buttons - Vertical & Professional */
 .actions {
   margin: 15px 0;
+  display: flex;
+  flex-direction: column;
+  gap: 12px;
 }
 
-.actions button {
+.btn-new-request {
   display: flex;
   align-items: center;
-  gap: 6px;
-  padding: 10px 18px;
-  border: 1px solid #d1d5db;
+  gap: 8px;
+  padding: 12px 18px;
   border-radius: 8px;
+  border: 1px solid #d1d5db;
   background: #f3f4f6;
-  color: #111827;
   font-weight: 600;
+  color: #111827;
   cursor: pointer;
   transition: all 0.2s ease;
 }
 
-.actions button:hover {
+.btn-new-request:hover {
   background: #e5e7eb;
 }
 
@@ -155,14 +162,13 @@
   color: white;
 }
 
-.status.pending { background: #fbbf24; }
+.status.pending_lecturer_approval { background: #fbbf24; color: #111; }
 .status.approved { background: #16a34a; }
-.status.rejected { background: #e74c3c; }
+.status.rejected_by_lecturer { background: #dc2626; }
 .status.issued { background: #2563eb; }
 .status.accepted { background: #2ecc71; }
 .status.returnrequested { background: #f97316; }
 .status.returned { background: #16a34a; }
-.status.rejected_by_lecturer { background: #dc2626; }
 .status.status-default { background: #6b7280; }
 
 /* Items column */
