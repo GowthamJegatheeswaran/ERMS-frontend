@@ -3,6 +3,7 @@ import Sidebar from "../components/Sidebar"
 import Topbar from "../components/Topbar"
 import { useState } from "react"
 import ChangePasswordModal from "../components/ChangePasswordModal"
+import { FaUserCog, FaLock } from "react-icons/fa"
 
 export default function Settings() {
   const [sidebarOpen, setSidebarOpen] = useState(false)
@@ -13,24 +14,31 @@ export default function Settings() {
   return (
     <div className="dashboard-container">
       <Sidebar isOpen={sidebarOpen} onClose={() => setSidebarOpen(false)} />
+
       <div className="main-content">
         <Topbar onMenuClick={() => setSidebarOpen(true)} />
-        <div className="content">
-          <h2>Settings</h2>
-          <div style={{ maxWidth: 520, marginTop: 12 }}>
-            <p style={{ color: "#555" }}>Current role: <b>{role}</b></p>
 
-            <div style={{ marginTop: 16 }}>
-              <button className="btn-submit" type="button" onClick={() => setShowReset(true)}>
-                Reset Password
-              </button>
+        <div className="content">
+          <h2 className="page-title">Settings</h2>
+
+          <div className="settings-card">
+            <div className="settings-card-header">
+              <FaUserCog size={24} />
+              <h3>Profile & Account</h3>
             </div>
+            <p>
+              Current role: <b>{role}</b>
+            </p>
+            <button
+              className="btn-reset"
+              type="button"
+              onClick={() => setShowReset(true)}
+            >
+              <FaLock size={16} style={{ marginRight: 6 }} />
+              Reset Password
+            </button>
           </div>
         </div>
-        <footer>
-          Faculty of Engineering | University of Jaffna <br />
-          © Copyright 2026. All Rights Reserved - ERS
-        </footer>
       </div>
 
       {showReset && <ChangePasswordModal onClose={() => setShowReset(false)} />}
