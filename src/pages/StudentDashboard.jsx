@@ -158,9 +158,6 @@ export default function StudentDashboard() {
 </table>
         </div>
 
-        <footer>
-          Faculty of Engineering | University of Jaffna <br />© Copyright 2026. All Rights Reserved - ERS
-        </footer>
       </div>
     </div>
   )

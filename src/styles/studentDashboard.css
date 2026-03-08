@@ -190,10 +190,10 @@
   color: white;
 }
 
-.summary-card.pending { background: #fbbf24; } /* yellow */
-.summary-card.approved { background: #16a34a; } /* green */
-.summary-card.rejected { background: #dc2626; } /* red */
-.summary-card.total { background: #2563eb; } /* blue */
+.summary-card.pending { background: #fef3c7; color: #b45309; }  /* light yellow with darker text */
+.summary-card.approved { background: #d1fae5; color: #047857; }  /* light green */
+.summary-card.rejected { background: #fee2e2; color: #b91c1c; }  /* light red */
+.summary-card.total { background: #dbeafe; color: #1e40af; }     /* light blue */
 
 .card-icon { font-size: 32px; }
 .card-info h4 { margin: 0; font-size: 16px; }
@@ -208,18 +208,18 @@
   display: flex;
   align-items: center;
   gap: 6px;
-  padding: 10px 20px;
-  margin-right: 10px;
-  border: none;
+  padding: 10px 18px;
+  border: 1px solid #d1d5db;  /* subtle border */
   border-radius: 8px;
-  background: #2563eb;
-  color: white;
-  cursor: pointer;
+  background: #f3f4f6;          /* very light gray */
+  color: #111827;
   font-weight: 600;
+  cursor: pointer;
+  transition: all 0.2s ease;
 }
 
 .actions button:hover {
-  background: #1d4ed8;
+  background: #e5e7eb;          /* slightly darker on hover */
 }
 
 /* TABLE */
