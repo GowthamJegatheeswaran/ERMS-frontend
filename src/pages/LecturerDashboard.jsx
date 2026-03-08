@@ -22,6 +22,7 @@ export default function LecturerDashboard() {
   const [error, setError] = useState("")
   const [user, setUser] = useState(null)
 
+  // Load dashboard data
   const load = async () => {
     setError("")
     try {
@@ -54,8 +55,8 @@ export default function LecturerDashboard() {
   const counts = useMemo(() => {
     const pendingApplications = queue.length
     const totalMine = myRows.length
-    const pendingMine = myRows.filter(r => String(r.status) === "PENDING_LECTURER_APPROVAL").length
-    const approvedMine = myRows.filter(r => String(r.status) === "APPROVED").length
+    const pendingMine = myRows.filter(r => r.status === "PENDING_LECTURER_APPROVAL").length
+    const approvedMine = myRows.filter(r => r.status === "APPROVED").length
     return { pendingApplications, totalMine, pendingMine, approvedMine }
   }, [queue, myRows])
 
@@ -91,34 +92,34 @@ export default function LecturerDashboard() {
               title="Pending Applications" 
               value={counts.pendingApplications} 
               icon={<AiOutlineHourglass size={28} />} 
-              color="#fef3c7" 
+              className="pending"
             />
             <SummaryCard 
               title="My Total Requests" 
               value={counts.totalMine} 
               icon={<AiOutlineFileText size={28} />} 
-              color="#dbeafe" 
+              className="total"
             />
             <SummaryCard 
               title="Pending Requests" 
               value={counts.pendingMine} 
               icon={<AiOutlineClockCircle size={28} />} 
-              color="#fde68a" 
+              className="personal-pending"
             />
             <SummaryCard 
               title="Approved Requests" 
               value={counts.approvedMine} 
               icon={<AiOutlineCheckCircle size={28} />} 
-              color="#d1fae5" 
+              className="personal-approved"
             />
           </div>
 
           {/* Quick Actions Horizontal */}
-          <div className="actions" style={{ flexDirection: "row" }}>
-            <button onClick={() => navigate("/lecturer-new-request")}>
+          <div className="actions horizontal">
+            <button onClick={() => navigate("/lecturer-new-request")} style={{ background: "#2563eb", color: "white" }}>
               <AiOutlinePlus size={18} /> New Request
             </button>
-            <button onClick={() => navigate("/lecturer-applications")}>
+            <button onClick={() => navigate("/lecturer-applications")} style={{ background: "#1d4ed8", color: "white" }}>
               <AiOutlineFileText size={18} /> Applications
             </button>
           </div>

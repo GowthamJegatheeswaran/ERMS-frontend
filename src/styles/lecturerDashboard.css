@@ -69,10 +69,13 @@
   color: white;
 }
 
-.summary-card.pending-applications { background: #fde68a; color: #b45309; }
-.summary-card.my-total { background: #dbeafe; color: #1e40af; }
-.summary-card.pending-mine { background: #fef3c7; color: #b45309; }
-.summary-card.approved-mine { background: #d1fae5; color: #047857; }
+/* Lecturer Dashboard Summary Cards Colors */
+.summary-card.pending { background: #fef3c7; color: #b45309; }       /* light yellow */
+.summary-card.approved { background: #d1fae5; color: #047857; }      /* light green */
+.summary-card.rejected { background: #fee2e2; color: #b91c1c; }      /* light red */
+.summary-card.total { background: #dbeafe; color: #1e40af; }         /* light blue */
+.summary-card.personal-pending { background: #fff7ed; color: #c2410c; }  /* lighter yellow */
+.summary-card.personal-approved { background: #ecfdf5; color: #065f46; } /* lighter green */
 
 .card-icon { font-size: 32px; }
 .card-info h4 { margin: 0; font-size: 16px; }
