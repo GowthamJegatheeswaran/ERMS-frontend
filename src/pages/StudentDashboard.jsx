@@ -16,6 +16,7 @@ import {
 import { AuthAPI } from "../api/api"
 
 export default function StudentDashboard() {
+  const [showNewRequest, setShowNewRequest] = useState(false)
   const [user, setUser] = useState(null)
   const navigate = useNavigate()
   const [sidebarOpen, setSidebarOpen] = useState(false)
@@ -119,11 +120,52 @@ export default function StudentDashboard() {
           
 
 <div className="actions">
-  <button className="btn-new-request">
-    <AiOutlinePlus size={18} /> {/* professional plus icon */}
-    New Request
+  <button
+    className="btn-new-request"
+    onClick={() => setShowNewRequest(true)}
+  >
+    <AiOutlinePlus size={18} /> New Request
   </button>
 </div>
+
+{/* ===== New Request Modal ===== */}
+{showNewRequest && (
+  <div
+    className="ers-modal-backdrop"
+    onClick={() => setShowNewRequest(false)}
+  >
+    <div
+      className="ers-modal"
+      onClick={(e) => e.stopPropagation()}
+    >
+      <div className="ers-modal-header">New Request</div>
+      <div className="ers-modal-body">
+        <form className="new-request-form">
+          <div className="field">
+            <label>Equipment Name</label>
+            <input type="text" placeholder="Enter equipment" />
+          </div>
+          <div className="field">
+            <label>Quantity</label>
+            <input type="number" placeholder="Enter quantity" />
+          </div>
+          <div className="form-actions">
+            <button
+              type="button"
+              className="btn-cancel"
+              onClick={() => setShowNewRequest(false)}
+            >
+              Cancel
+            </button>
+            <button type="submit" className="btn-submit">
+              Submit
+            </button>
+          </div>
+        </form>
+      </div>
+    </div>
+  </div>
+)}
 
           <h3>Recent Requests</h3>
           <table className="requests-table">
