@@ -157,33 +157,26 @@ export default function ViewRequests() {
       <td>{r.labName || "-"}</td>
       <td>{r.lecturerName || "-"}</td>
 
-      {/* Items column: each item as a mini block with status & actions */}
+      {/* Items column: names + quantities only */}
       <td className="items-column">
+        {Array.isArray(r.items) && r.items.length > 0
+          ? r.items.map((it) => `${it.equipmentName || `Equipment #${it.equipmentId}`}: ${it.quantity}`).join(", ")
+          : "-"
+        }
+      </td>
+
+      {/* From / To */}
+      <td style={{ textAlign: "center" }}>{r.fromDate || "-"}</td>
+      <td style={{ textAlign: "center" }}>{r.toDate || "-"}</td>
+
+      {/* Status column: multiple pills if multiple items */}
+      <td style={{ textAlign: "center" }}>
         {Array.isArray(r.items) && r.items.length > 0 ? (
           <div style={{ display: "flex", flexDirection: "column", gap: "4px" }}>
             {r.items.map((it) => (
-              <div
-                key={it.requestItemId}
-                style={{
-                  display: "flex",
-                  alignItems: "center",
-                  justifyContent: "space-between",
-                  gap: "8px",
-                  flexWrap: "wrap",
-                }}
-              >
-                <span>
-                  {it.equipmentName || `Equipment #${it.equipmentId}`}: {it.quantity}
-                </span>
-
-                {/* Status pill */}
-                <span className={`status ${String(it.itemStatus || "").toLowerCase()}`}>
-                  {it.itemStatus || "-"}
-                </span>
-
-                {/* Action button */}
-                {renderAction({ _item: it, _itemStatus: it.itemStatus })}
-              </div>
+              <span key={it.requestItemId} className={`status ${String(it.itemStatus || "").toLowerCase()}`}>
+                {it.itemStatus || "-"}
+              </span>
             ))}
           </div>
         ) : (
@@ -191,20 +184,15 @@ export default function ViewRequests() {
         )}
       </td>
 
-      <td style={{ textAlign: "center" }}>{r.fromDate || "-"}</td>
-      <td style={{ textAlign: "center" }}>{r.toDate || "-"}</td>
-      
-      {/* For the main status column, you can either show first item or leave blank */}
+      {/* Action column: multiple buttons if multiple items */}
       <td style={{ textAlign: "center" }}>
-        {r.items && r.items.length > 0 && (
-          <span className={`status ${String(r.items[0].itemStatus || "").toLowerCase()}`}>
-            {r.items[0].itemStatus || "-"}
-          </span>
+        {Array.isArray(r.items) && r.items.length > 0 ? (
+          <div style={{ display: "flex", flexDirection: "column", gap: "4px" }}>
+            {r.items.map((it) => renderAction({ _item: it, _itemStatus: it.itemStatus }))}
+          </div>
+        ) : (
+          "-"
         )}
-      </td>
-
-      <td style={{ textAlign: "center" }}>
-        {/* Optionally leave empty, as each item has its own action above */}
       </td>
     </tr>
   ))}

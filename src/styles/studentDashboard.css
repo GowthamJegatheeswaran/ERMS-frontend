@@ -788,33 +788,21 @@ footer {
 /* ========= Items column styling ========= */
 /* Display all items in one line, comma separated */
 .view-requests-table td.items-column {
-  text-align: left;   /* keep text aligned left */
-  white-space: normal; /* allow wrapping if needed */
-  word-break: break-word;
+  white-space: normal;
+  text-align: left;
 }
 
-.view-requests-table td.items-column > div {
-  display: flex;
-  flex-direction: column;
-  gap: 4px;
-}
-
-.view-requests-table td.items-column span.status {
+.view-requests-table td .status {
   display: inline-flex;
-  align-items: center;
-  justify-content: center;
   padding: 2px 6px;
   border-radius: 6px;
   font-size: 12px;
   font-weight: 600;
-}
-.view-requests-table td.items-column ul {
-  list-style: none;
-  padding: 0;
-  margin: 0;
+  color: white;
 }
 
-.view-requests-table td.items-column ul li {
-  display: inline;
-  margin-right: 8px;
+.view-requests-table td > div {
+  display: flex;
+  flex-direction: column;
+  gap: 4px;
 }
