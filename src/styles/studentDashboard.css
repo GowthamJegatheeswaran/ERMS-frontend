@@ -527,9 +527,25 @@ footer {
 
 /* Sidebar menu */
 .sidebar-menu {
-  list-style: none;
+  display: flex;
+  flex-direction: column;
+  height: 100%; /* full height of sidebar */
   padding: 0;
   margin: 0;
+}
+.sidebar-menu li:not(.bottom) {
+  margin-bottom: 6px; /* space between items */
+}
+
+.sidebar-menu .bottom {
+  margin-top: auto; /* pushes it to bottom */
+  display: flex;
+  align-items: center;
+  gap: 12px;
+}
+
+.sidebar-menu li.logout {
+  margin-top: auto;
 }
 
 .sidebar-menu li {

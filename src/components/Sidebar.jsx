@@ -56,26 +56,29 @@ export default function Sidebar({ isOpen, onClose }) {
       <div className={`sidebar ${isOpen ? "open" : ""}`}>
     
         <ul className="sidebar-menu">
-          {menu.map((m) => (
-            <li
-              key={m.label}
-              onClick={() => go(m.path)}
-              className={isActive(m.path) ? "active" : ""}
-            >
-              <span className="menu-icon">{m.icon}</span>
-              <span className="menu-label">{m.label}</span>
-            </li>
-          ))}
+  {menu.map((m) => (
+    <li
+      key={m.label}
+      onClick={() => go(m.path)}
+      className={isActive(m.path) ? "active" : ""}
+    >
+      <span className="menu-icon">{m.icon}</span>
+      <span className="menu-label">{m.label}</span>
+    </li>
+  ))}
 
-          <li className="bottom" onClick={() => go("/settings")}>
-            <span className="menu-icon"><AiOutlineSetting /></span>
-            Settings
-          </li>
-          <li onClick={handleLogout}>
-            <span className="menu-icon"><AiOutlineUser /></span>
-            Logout
-          </li>
-        </ul>
+  {/* Settings just below History */}
+  <li onClick={() => go("/settings")}>
+    <span className="menu-icon"><AiOutlineSetting /></span>
+    Settings
+  </li>
+
+  {/* Logout pinned at bottom */}
+  <li className="logout" onClick={handleLogout}>
+    <span className="menu-icon"><AiOutlineUser /></span>
+    Logout
+  </li>
+</ul>
       </div>
     </>
   )
