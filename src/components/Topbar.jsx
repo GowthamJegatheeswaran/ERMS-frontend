@@ -1,5 +1,5 @@
 import NotificationBell from "./NotificationBell"
-import logo from "../assets/logo.png" // your app icon/logo
+import logo from "../images/logo.png" // your app icon/logo
 
 export default function Topbar({ title = "Dashboard" }) {
   return (
