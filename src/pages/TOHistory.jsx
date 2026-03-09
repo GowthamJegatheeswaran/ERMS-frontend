@@ -1,4 +1,4 @@
-import "../styles/studentDashboard.css"
+import "../styles/toDashboard.css"
 import Sidebar from "../components/Sidebar"
 import Topbar from "../components/Topbar"
 import { useEffect, useMemo, useState } from "react"
@@ -25,50 +25,40 @@ export default function TOHistory() {
 
   useEffect(() => {
     load()
-    // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [])
 
   const history = useMemo(() => {
-    // TO History (item-wise): show returned items (waiting verify / verified / damaged)
     const itemDone = new Set(["RETURN_REQUESTED", "RETURN_VERIFIED", "DAMAGED_REPORTED"])
     const flat = []
     for (const r of rows || []) {
       const items = Array.isArray(r?.items) ? r.items : []
       for (const it of items) {
-        const st = String(it?.itemStatus || "")
-        if (!itemDone.has(st)) continue
-        flat.push({ ...r, _item: it, _itemStatus: st })
+        if (!itemDone.has(String(it?.itemStatus || ""))) continue
+        flat.push({ ...r, _item: it, _itemStatus: String(it?.itemStatus || "") })
       }
     }
     return flat.sort((a, b) => (b.requestId || 0) - (a.requestId || 0))
   }, [rows])
 
-  // Separate sections (Student/Instructor first, Lecturer below)
-  const historyStudentInstructor = useMemo(() => {
-    return history.filter((r) => {
+  const historyStudentInstructor = useMemo(() =>
+    history.filter((r) => {
       const role = String(r.requesterRole || "").toUpperCase()
       return role === "STUDENT" || role === "INSTRUCTOR" || role === "STAFF"
-    })
-  }, [history])
+    }), [history]
+  )
 
-  const historyLecturer = useMemo(() => {
-    return history.filter((r) => String(r.requesterRole || "").toUpperCase() === "LECTURER")
-  }, [history])
+  const historyLecturer = useMemo(() =>
+    history.filter((r) => String(r.requesterRole || "").toUpperCase() === "LECTURER"), [history]
+  )
 
   const requesterText = (r) => r.requesterRegNo || r.requesterFullName || "-"
-
   const renderItems = (r) => {
     const it = r?._item
     if (!it) return <span style={{ color: "#777" }}>—</span>
-    return (
-      <div>
-        {it.equipmentName || `Equipment #${it.equipmentId}`} × {it.quantity ?? "-"}
-      </div>
-    )
+    return <div>{it.equipmentName || `Equipment #${it.equipmentId}`} × {it.quantity ?? "-"}</div>
   }
 
   const canVerifyReturn = (itemStatus) => String(itemStatus || "") === "RETURN_REQUESTED"
-
   const actVerify = async (requestItemId, damaged) => {
     setError("")
     try {
@@ -84,17 +74,12 @@ export default function TOHistory() {
       <Sidebar isOpen={sidebarOpen} onClose={() => setSidebarOpen(false)} />
       <div className="main-content">
         <Topbar onMenuClick={() => setSidebarOpen(true)} />
-
         <div className="content">
-          <div style={{ display: "flex", justifyContent: "space-between", alignItems: "center" }}>
-            <h2 style={{ marginBottom: 12 }}>TO History</h2>
-            <button className="btn-submit" type="button" onClick={load} disabled={loading}>
-              {loading ? "Loading..." : "Refresh"}
-            </button>
-          </div>
+          <h2 className="welcome">TO History</h2>
 
           {error && <div className="error-message" style={{ color: "red", marginBottom: 10 }}>{error}</div>}
 
+          <h3 style={{ marginTop: 12, marginBottom: 10 }}>Student/Instructor History</h3>
           <table className="requests-table">
             <thead>
               <tr>
@@ -116,37 +101,29 @@ export default function TOHistory() {
                   <td>{r.labName || "-"}</td>
                   <td>{renderItems(r)}</td>
                   <td style={{ textAlign: "center" }}>
-                    <span className={`status ${String(r._itemStatus || "").toLowerCase()}`}>{r._itemStatus || "-"}</span>
+                    <span className={`status ${String(r._itemStatus || "").toLowerCase()}`}>
+                      {r._itemStatus || "-"}
+                    </span>
                   </td>
                   <td style={{ textAlign: "center" }}>
                     {canVerifyReturn(r._itemStatus) ? (
-                      <div style={{ display: "flex", gap: 8, justifyContent: "center" }}>
-                        <button className="btn-submit" type="button" onClick={() => actVerify(r?._item?.requestItemId, false)}>
-                          Verify OK
-                        </button>
-                        <button className="btn-cancel" type="button" onClick={() => actVerify(r?._item?.requestItemId, true)}>
-                          Mark Damaged
-                        </button>
+                      <div className="to-actions" style={{ justifyContent: "center" }}>
+                        <button className="btn-submit" type="button" onClick={() => actVerify(r?._item?.requestItemId, false)}>Verify OK</button>
+                        <button className="btn-cancel" type="button" onClick={() => actVerify(r?._item?.requestItemId, true)}>Mark Damaged</button>
                       </div>
-                    ) : (
-                      <span style={{ color: "#777" }}>—</span>
-                    )}
+                    ) : <span style={{ color: "#777" }}>—</span>}
                   </td>
                 </tr>
               ))}
-
               {historyStudentInstructor.length === 0 && !loading && (
                 <tr>
-                  <td colSpan="7" style={{ textAlign: "center" }}>
-                    No returned records
-                  </td>
+                  <td colSpan="7" style={{ textAlign: "center" }}>No returned records</td>
                 </tr>
               )}
             </tbody>
           </table>
 
           <h3 style={{ marginTop: 22, marginBottom: 10 }}>Lecturer History</h3>
-
           <table className="requests-table">
             <thead>
               <tr>
@@ -168,47 +145,28 @@ export default function TOHistory() {
                   <td>{r.labName || "-"}</td>
                   <td>{renderItems(r)}</td>
                   <td style={{ textAlign: "center" }}>
-                    <span className={`status ${String(r._itemStatus || "").toLowerCase()}`}>{r._itemStatus || "-"}</span>
+                    <span className={`status ${String(r._itemStatus || "").toLowerCase()}`}>
+                      {r._itemStatus || "-"}
+                    </span>
                   </td>
                   <td style={{ textAlign: "center" }}>
                     {canVerifyReturn(r._itemStatus) ? (
-                      <div style={{ display: "flex", gap: 8, justifyContent: "center" }}>
-                        <button
-                          className="btn-submit"
-                          type="button"
-                          onClick={() => actVerify(r?._item?.requestItemId, false)}
-                        >
-                          Verify OK
-                        </button>
-                        <button
-                          className="btn-cancel"
-                          type="button"
-                          onClick={() => actVerify(r?._item?.requestItemId, true)}
-                        >
-                          Mark Damaged
-                        </button>
+                      <div className="to-actions" style={{ justifyContent: "center" }}>
+                        <button className="btn-submit" type="button" onClick={() => actVerify(r?._item?.requestItemId, false)}>Verify OK</button>
+                        <button className="btn-cancel" type="button" onClick={() => actVerify(r?._item?.requestItemId, true)}>Mark Damaged</button>
                       </div>
-                    ) : (
-                      <span style={{ color: "#777" }}>—</span>
-                    )}
+                    ) : <span style={{ color: "#777" }}>—</span>}
                   </td>
                 </tr>
               ))}
-
               {historyLecturer.length === 0 && !loading && (
                 <tr>
-                  <td colSpan="7" style={{ textAlign: "center" }}>
-                    No lecturer records
-                  </td>
+                  <td colSpan="7" style={{ textAlign: "center" }}>No lecturer records</td>
                 </tr>
               )}
             </tbody>
           </table>
         </div>
-
-        <footer>
-          Faculty of Engineering | University of Jaffna <br />© Copyright 2026. All Rights Reserved - ERS
-        </footer>
       </div>
     </div>
   )

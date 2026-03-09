@@ -102,7 +102,7 @@ export default function TOApprovalRequests() {
         <Topbar onMenuClick={() => setSidebarOpen(true)} />
         <div className="content">
           {error && <div className="error-message" style={{ color: "red", marginBottom: 10 }}>{error}</div>}
-
+          <h3 style={{ marginBottom: "10px" }}>Request List</h3>
           <table className="requests-table">
             <thead>
               <tr>
