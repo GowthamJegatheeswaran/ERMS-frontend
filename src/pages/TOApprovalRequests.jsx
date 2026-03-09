@@ -84,9 +84,35 @@ export default function TOApprovalRequests() {
   const renderItems = (r) => {
     const it = r?._item
     if (!it) return "-"
+
     return (
-      <div>
-        {it.equipmentName || `Equipment #${it.equipmentId}`} × {it.quantity}
+      <div className="item-row">
+        <div>{it.equipmentName || `Equipment #${it.equipmentId}`} × {it.quantity}</div>
+
+        {(canIssue(it.itemStatus) || canVerifyReturn(it.itemStatus)) && (
+          <div className="to-actions">
+            {canIssue(it.itemStatus) && (
+              <>
+                <button onClick={() => actIssue(it.requestItemId)}>
+                  <AiOutlineCheck /> Issue
+                </button>
+                <button onClick={() => actWait(it.requestItemId)}>
+                  <AiOutlineClockCircle /> Wait
+                </button>
+              </>
+            )}
+            {canVerifyReturn(it.itemStatus) && (
+              <>
+                <button onClick={() => actVerify(it.requestItemId, false)}>
+                  <AiOutlineCheck /> Verify OK
+                </button>
+                <button onClick={() => actVerify(it.requestItemId, true)}>
+                  <AiOutlineClose /> Mark Damaged
+                </button>
+              </>
+            )}
+          </div>
+        )}
       </div>
     )
   }
@@ -132,31 +158,7 @@ export default function TOApprovalRequests() {
                         {r?._item?.itemStatus || "-"}
                       </span>
                     </td>
-                    <td>
-                      {canIssue(r?._item?.itemStatus) && (
-                        <div className="to-actions">
-                          <button onClick={() => actIssue(r?._item?.requestItemId)}>
-                            <AiOutlineCheck /> Issue
-                          </button>
-                          <button onClick={() => actWait(r?._item?.requestItemId)}>
-                            <AiOutlineClockCircle /> Wait
-                          </button>
-                        </div>
-                      )}
-                      {canVerifyReturn(r?._item?.itemStatus) && (
-                        <div className="to-actions">
-                          <button onClick={() => actVerify(r?._item?.requestItemId, false)}>
-                            <AiOutlineCheck /> Verify OK
-                          </button>
-                          <button onClick={() => actVerify(r?._item?.requestItemId, true)}>
-                            <AiOutlineClose /> Mark Damaged
-                          </button>
-                        </div>
-                      )}
-                      {!canIssue(r?._item?.itemStatus) && !canVerifyReturn(r?._item?.itemStatus) && (
-                        <span style={{ color: "#777" }}>—</span>
-                      )}
-                    </td>
+                    <td>{/* Actions are now inside renderItems */}</td>
                   </tr>
                 )
               })}
