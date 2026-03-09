@@ -31,19 +31,21 @@
 
 .action-buttons {
   display: flex;           /* horizontal layout */
+  flex-wrap: nowrap;       /* prevent wrapping to vertical */
   gap: 8px;                /* space between buttons */
   justify-content: flex-start; /* align buttons left in cell */
   align-items: center;
 }
 
 .action-buttons button.small {
-  padding: 4px 8px;       /* small, professional size */
+  flex: none;             /* prevent buttons from stretching */
+  padding: 4px 8px;
   font-size: 12px;
   border-radius: 4px;
-  flex: none;             /* prevent stretching */
   display: inline-flex;
   align-items: center;
-  gap: 4px;               /* space between icon + text */
+  gap: 4px;
+  white-space: nowrap;    /* prevent text from breaking */
 }
 
 .to-actions button.small {
