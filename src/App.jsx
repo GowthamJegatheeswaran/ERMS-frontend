@@ -88,7 +88,7 @@ function App() {
           <Route path="/to-purchase" element={<TOPurchase />} />
           <Route path="/to-purchase-new" element={<TOPurchaseNew />} />
           <Route path="/to-history" element={<TOHistory />} />
-          <Route path="/to-view-requests" element={<TOViewRequests />} />
+          <Route path="/to-view-requests" element={<TOPurchase />} />
 
           {/* HOD */}
           <Route path="/hod-dashboard" element={<HodDashboard />} />
