@@ -181,45 +181,35 @@
   padding: 20px;
   margin-bottom: 20px;
   box-shadow: 0 4px 12px rgba(0,0,0,0.08);
-  transition: all 0.2s ease;
 }
 
-.history-card:hover {
-  box-shadow: 0 6px 18px rgba(0,0,0,0.12);
-}
-
-.history-grid {
-  display: grid;
-  grid-template-columns: 120px 1fr 120px 1fr;
-  gap: 10px 20px;
+.history-columns {
+  display: flex;
+  justify-content: space-between;
+  gap: 20px;
   margin-bottom: 12px;
-  align-items: center;
 }
 
-.history-grid .label {
-  font-weight: 600;
-  font-size: 14px;
-  color: #374151;
-}
-
-.history-grid .value {
-  font-size: 14px;
-  color: #111827;
+.history-left, .history-right {
+  display: flex;
+  flex-direction: column;
+  gap: 6px;
 }
 
 .history-actions {
   display: flex;
-  gap: 12px;
+  gap: 10px;
   margin-top: 12px;
 }
 
 .history-actions button {
   flex: 1;
-  padding: 12px 20px;
-  border-radius: 6px;
+  padding: 8px 12px; /* smaller, professional buttons */
   font-weight: 600;
+  border-radius: 6px;
   cursor: pointer;
   border: none;
+  font-size: 13px;
 }
 
 .btn-submit { background: #2563eb; color: white; }
@@ -228,7 +218,7 @@
 .status {
   display: inline-flex;
   align-items: center;
-  padding: 4px 12px;
+  padding: 2px 8px;
   border-radius: 6px;
   font-weight: 600;
   font-size: 13px;
