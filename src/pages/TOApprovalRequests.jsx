@@ -1,8 +1,9 @@
-import "../styles/studentDashboard.css"
+import "../toDashboard.css"
 import Sidebar from "../components/Sidebar"
 import Topbar from "../components/Topbar"
 import { useEffect, useMemo, useState } from "react"
 import { ToRequestAPI } from "../api/api"
+import { AiOutlineCheck, AiOutlineClockCircle, AiOutlineClose, AiOutlinePlus } from "react-icons/ai"
 
 export default function TOApprovalRequests() {
   const [sidebarOpen, setSidebarOpen] = useState(false)
@@ -25,16 +26,13 @@ export default function TOApprovalRequests() {
 
   useEffect(() => {
     load()
-    // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [])
 
   const sorted = useMemo(() => {
-    // Flatten: 1 row = 1 equipment item
     const out = []
     for (const r of rows || []) {
       const items = Array.isArray(r?.items) ? r.items : []
       for (const it of items) {
-        // Hide lecturer-rejected items from TO view
         const st = String(it?.itemStatus || "")
         if (st === "REJECTED_BY_LECTURER") continue
         out.push({ ...r, _item: it })
@@ -44,17 +42,6 @@ export default function TOApprovalRequests() {
   }, [rows])
 
   const fmt = (d) => (d ? String(d) : "-")
-
-  const renderItems = (r) => {
-    const it = r?._item
-    if (!it) return "-"
-    return (
-      <div>
-        {it.equipmentName || `Equipment #${it.equipmentId}`} × {it.quantity}
-      </div>
-    )
-  }
-
   const requesterText = (r) => r.requesterRegNo || r.requesterFullName || "-"
 
   const canIssue = (itemStatus) => {
@@ -95,21 +82,23 @@ export default function TOApprovalRequests() {
     }
   }
 
+  const renderItems = (r) => {
+    const it = r?._item
+    if (!it) return "-"
+    return (
+      <div>
+        {it.equipmentName || `Equipment #${it.equipmentId}`} × {it.quantity}
+      </div>
+    )
+  }
+
   return (
     <div className="dashboard-container">
       <Sidebar isOpen={sidebarOpen} onClose={() => setSidebarOpen(false)} />
-
       <div className="main-content">
         <Topbar onMenuClick={() => setSidebarOpen(true)} />
 
         <div className="content">
-          <div style={{ display: "flex", justifyContent: "space-between", alignItems: "center" }}>
-            <h2 style={{ marginBottom: 15 }}>TO Requests</h2>
-            <button className="btn-submit" type="button" onClick={load} disabled={loading}>
-              {loading ? "Loading..." : "Refresh"}
-            </button>
-          </div>
-
           {error && <div className="error-message" style={{ color: "red", marginBottom: 10 }}>{error}</div>}
 
           <table className="requests-table">
@@ -121,46 +110,46 @@ export default function TOApprovalRequests() {
                 <th>Items</th>
                 <th>From</th>
                 <th>To</th>
-                <th style={{ textAlign: "center" }}>Status</th>
-                <th style={{ textAlign: "center" }}>Actions</th>
+                <th>Status</th>
+                <th>Actions</th>
               </tr>
             </thead>
 
             <tbody>
               {sorted.map((r) => (
                 <tr key={`${r.requestId}-${r?._item?.requestItemId}`}>
-                  <td style={{ textAlign: "center" }}>{r.requestId}</td>
+                  <td>{r.requestId}</td>
                   <td>{requesterText(r)}</td>
                   <td>{r.labName || "-"}</td>
                   <td>{renderItems(r)}</td>
-                  <td style={{ textAlign: "center" }}>{fmt(r.fromDate)}</td>
-                  <td style={{ textAlign: "center" }}>{fmt(r.toDate)}</td>
-                  <td style={{ textAlign: "center" }}>
-                    <span className={`status ${String(r?._item?.itemStatus || "").toLowerCase()}`}>{r?._item?.itemStatus || "-"}</span>
+                  <td>{fmt(r.fromDate)}</td>
+                  <td>{fmt(r.toDate)}</td>
+                  <td>
+                    <span className={`status ${String(r?._item?.itemStatus || "").toLowerCase()}`}>
+                      {r?._item?.itemStatus || "-"}
+                    </span>
                   </td>
-                  <td style={{ textAlign: "center" }}>
+                  <td>
                     {canIssue(r?._item?.itemStatus) && (
-                      <div style={{ display: "flex", gap: 8, justifyContent: "center" }}>
-                        <button className="btn-submit" type="button" onClick={() => actIssue(r?._item?.requestItemId)}>
-                          Issue
+                      <div className="to-actions">
+                        <button onClick={() => actIssue(r?._item?.requestItemId)}>
+                          <AiOutlineCheck /> Issue
                         </button>
-                        <button className="btn-cancel" type="button" onClick={() => actWait(r?._item?.requestItemId)}>
-                          Wait
+                        <button onClick={() => actWait(r?._item?.requestItemId)}>
+                          <AiOutlineClockCircle /> Wait
                         </button>
                       </div>
                     )}
-
                     {canVerifyReturn(r?._item?.itemStatus) && (
-                      <div style={{ display: "flex", gap: 8, justifyContent: "center" }}>
-                        <button className="btn-submit" type="button" onClick={() => actVerify(r?._item?.requestItemId, false)}>
-                          Verify OK
+                      <div className="to-actions">
+                        <button onClick={() => actVerify(r?._item?.requestItemId, false)}>
+                          <AiOutlineCheck /> Verify OK
                         </button>
-                        <button className="btn-cancel" type="button" onClick={() => actVerify(r?._item?.requestItemId, true)}>
-                          Mark Damaged
+                        <button onClick={() => actVerify(r?._item?.requestItemId, true)}>
+                          <AiOutlineClose /> Mark Damaged
                         </button>
                       </div>
                     )}
-
                     {!canIssue(r?._item?.itemStatus) && !canVerifyReturn(r?._item?.itemStatus) && <span style={{ color: "#777" }}>—</span>}
                   </td>
                 </tr>
@@ -176,10 +165,6 @@ export default function TOApprovalRequests() {
             </tbody>
           </table>
         </div>
-
-        <footer>
-          Faculty of Engineering | University of Jaffna <br />© Copyright 2026. All Rights Reserved - ERS
-        </footer>
       </div>
     </div>
   )
