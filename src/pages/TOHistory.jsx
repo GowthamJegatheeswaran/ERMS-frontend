@@ -71,6 +71,7 @@ export default function TOHistory() {
   };
 
   // Professional card renderer
+// Professional card renderer
 const renderCard = r => {
   const item = r._item;
   const bgColor = statusColorMap[item.itemStatus] || "#2563eb";
@@ -79,40 +80,37 @@ const renderCard = r => {
     <div key={`${r.requestId}-${item.requestItemId}`} className="history-card">
       <div className="history-grid">
         {/* LEFT COLUMN */}
-        <div className="label">Request ID:</div>
-        <div className="value">{r.requestId}</div>
-        <div className="label">Requester:</div>
-        <div className="value">{requesterText(r)}</div>
-        <div className="label">From:</div>
-        <div className="value">{r.fromDate || "-"}</div>
-        <div className="label">To:</div>
-        <div className="value">{r.toDate || "-"}</div>
+        <div className="history-left">
+          <div><strong>Request ID:</strong> {r.requestId}</div>
+          <div><strong>Requester:</strong> {requesterText(r)}</div>
+          <div><strong>From:</strong> {r.fromDate || "-"}</div>
+          <div><strong>To:</strong> {r.toDate || "-"}</div>
+        </div>
 
         {/* RIGHT COLUMN */}
-        <div className="label">Role:</div>
-        <div className="value">{r.requesterRole || "-"}</div>
-        <div className="label">Lab:</div>
-        <div className="value">{r.labName || "-"}</div>
-        <div className="label">Item:</div>
-        <div className="value">{item.equipmentName || `Equipment #${item.equipmentId}`} × {item.quantity}</div>
-        <div className="label">Status:</div>
-        <div className="value">
-          <span
-            className="status"
-            style={{
-              backgroundColor: bgColor,
-              color: item.itemStatus === "RETURN_REQUESTED" ? "#111" : "white",
-            }}
-          >
-            {item.itemStatus || "-"}
-          </span>
+        <div className="history-right">
+          <div><strong>Role:</strong> {r.requesterRole || "-"}</div>
+          <div><strong>Lab:</strong> {r.labName || "-"}</div>
+          <div><strong>Item:</strong> {item.equipmentName || `Equipment #${item.equipmentId}`} × {item.quantity}</div>
+          <div>
+            <strong>Status:</strong>{" "}
+            <span
+              className="status"
+              style={{
+                backgroundColor: bgColor,
+                color: item.itemStatus === "RETURN_REQUESTED" ? "#111" : "white",
+              }}
+            >
+              {item.itemStatus || "-"}
+            </span>
+          </div>
         </div>
       </div>
 
       {canVerify(item.itemStatus) && (
         <div className="history-actions">
-          <button className="btn-submit" onClick={() => actVerify(item.requestItemId, false)}>Verify OK</button>
-          <button className="btn-cancel" onClick={() => actVerify(item.requestItemId, true)}>Mark Damaged</button>
+          <button className="btn-submit small" onClick={() => actVerify(item.requestItemId, false)}>Verify OK</button>
+          <button className="btn-cancel small" onClick={() => actVerify(item.requestItemId, true)}>Mark Damaged</button>
         </div>
       )}
     </div>

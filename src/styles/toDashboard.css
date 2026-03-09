@@ -178,58 +178,37 @@
 .history-card {
   background: #fff;
   border-radius: 12px;
-  padding: 20px;
-  margin-bottom: 20px;
-  box-shadow: 0 4px 12px rgba(0,0,0,0.08);
-  transition: all 0.2s ease;
-}
-
-.history-card:hover {
-  box-shadow: 0 6px 18px rgba(0,0,0,0.12);
+  padding: 16px;
+  margin-bottom: 16px;
+  box-shadow: 0 2px 8px rgba(0,0,0,0.08);
 }
 
 .history-grid {
-  display: grid;
-  grid-template-columns: 120px 1fr 120px 1fr;
-  gap: 10px 20px;
-  margin-bottom: 12px;
-  align-items: center;
+  display: flex;
+  justify-content: space-between;
+  flex-wrap: wrap;
+  gap: 16px;
 }
 
-.history-grid .label {
-  font-weight: 600;
-  font-size: 14px;
-  color: #374151;
-}
-
-.history-grid .value {
-  font-size: 14px;
-  color: #111827;
+.history-left,
+.history-right {
+  display: flex;
+  flex-direction: column;
+  gap: 6px;
+  min-width: 200px;
+  flex: 1;
 }
 
 .history-actions {
   display: flex;
   gap: 12px;
   margin-top: 12px;
+  flex-wrap: wrap;
 }
 
-.history-actions button {
+.history-actions button.small {
   flex: 1;
-  padding: 12px 20px;
-  border-radius: 6px;
-  font-weight: 600;
-  cursor: pointer;
-  border: none;
-}
-
-.btn-submit { background: #2563eb; color: white; }
-.btn-cancel { background: #e5e7eb; color: #111; }
-
-.status {
-  display: inline-flex;
-  align-items: center;
-  padding: 4px 12px;
-  border-radius: 6px;
-  font-weight: 600;
+  min-width: 120px;
+  padding: 8px 14px;
   font-size: 13px;
 }
