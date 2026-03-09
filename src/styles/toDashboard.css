@@ -131,3 +131,32 @@
   color: white;
 }
 .status.default { background: #6b7280; color: white; }
+
+/* Quick Actions section */
+/* Dashboard Quick Actions (separate from table actions) */
+.dashboard-quick-actions {
+  display: flex;
+  align-items: center;
+  gap: 16px; /* horizontal space between buttons */
+  margin-bottom: 20px;
+}
+
+.dashboard-quick-actions button {
+  display: inline-flex;
+  align-items: center;
+  gap: 6px; /* space between icon and text */
+  padding: 10px 18px;
+  border-radius: 8px;
+  border: 1px solid #d1d5db;
+  background: #f3f4f6;
+  color: #111827;
+  font-weight: 600;
+  cursor: pointer;
+  transition: all 0.2s ease;
+}
+
+.dashboard-quick-actions button:hover {
+  background: #e5e7eb;
+  transform: translateY(-1px);
+  box-shadow: 0 2px 4px rgba(0,0,0,0.1);
+}

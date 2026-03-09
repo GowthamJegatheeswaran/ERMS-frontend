@@ -71,8 +71,7 @@ export default function TODashboard() {
 
           {error && <div className="error-message" style={{ color: "red", marginTop: 10 }}>{error}</div>}
 
-          <h3>Quick Actions</h3>
-<div className="to-actions">
+          <div className="dashboard-quick-actions">
   <button onClick={() => navigate("/to-approval-requests")}>
     <AiOutlineFileText size={18} /> Approval requests
   </button>
