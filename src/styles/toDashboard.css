@@ -207,8 +207,19 @@
 }
 
 .history-actions button.small {
-  flex: 1;
-  min-width: 120px;
-  padding: 8px 14px;
-  font-size: 13px;
+  flex: none;              /* remove flex-grow */
+  min-width: 100px;        /* smaller width */
+  padding: 6px 10px;       /* smaller padding */
+  font-size: 12px;         /* smaller font */
+  border-radius: 4px;      /* slightly smaller corners */
+}
+
+.btn-submit.small {
+  background: #2563eb;
+  color: white;
+}
+
+.btn-cancel.small {
+  background: #e5e7eb;
+  color: #111;
 }
