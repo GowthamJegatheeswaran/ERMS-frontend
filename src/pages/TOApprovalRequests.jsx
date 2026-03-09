@@ -150,10 +150,10 @@ export default function TOApprovalRequests() {
       {canVerifyReturn(it.itemStatus) && (
         <>
           <button className="small" onClick={() => actVerify(it.requestItemId, false)}>
-            <AiOutlineCheck /> Verify OK
+            <AiOutlineCheck /> OK
           </button>
           <button className="small" onClick={() => actVerify(it.requestItemId, true)}>
-            <AiOutlineClose /> Mark Damaged
+            <AiOutlineClose /> Damaged
           </button>
         </>
       )}
