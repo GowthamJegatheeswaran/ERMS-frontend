@@ -10,7 +10,7 @@ export default function TOHistory() {
   const [loading, setLoading] = useState(false)
   const [error, setError] = useState("")
 
-  // Load all history
+  // Load history
   const load = async () => {
     setError("")
     try {
@@ -24,9 +24,7 @@ export default function TOHistory() {
     }
   }
 
-  useEffect(() => {
-    load()
-  }, [])
+  useEffect(() => { load() }, [])
 
   // Flatten history: one row per equipment item
   const flatHistory = useMemo(() => {
@@ -42,12 +40,11 @@ export default function TOHistory() {
     return out.sort((a, b) => (b.requestId || 0) - (a.requestId || 0))
   }, [rows])
 
-  // Split by roles
+  // Split by role
   const historyStudentInstructor = useMemo(
     () => flatHistory.filter(r => ["STUDENT", "INSTRUCTOR", "STAFF"].includes((r.requesterRole || "").toUpperCase())),
     [flatHistory]
   )
-
   const historyLecturer = useMemo(
     () => flatHistory.filter(r => (r.requesterRole || "").toUpperCase() === "LECTURER"),
     [flatHistory]
@@ -66,57 +63,42 @@ export default function TOHistory() {
     }
   }
 
-  // Render a flat table
-  const renderTable = (data, emptyMsg) => (
-    <table className="requests-table">
-      <thead>
-        <tr>
-          <th>Request_ID</th>
-          <th>Requester</th>
-          <th>Role</th>
-          <th>Lab</th>
-          <th>Item</th>
-          <th>From</th>
-          <th>To</th>
-          <th>Status</th>
-          <th>Verify</th>
-        </tr>
-      </thead>
-      <tbody>
+  // Render card layout for history
+  const renderCards = (data) => {
+    if (!data || data.length === 0) return <div className="no-records">No records</div>
+
+    return (
+      <div className="history-cards">
         {data.map(r => (
-          <tr key={`${r.requestId}-${r._item.requestItemId}`}>
-            <td className="single-line-cell">{r.requestId}</td>
-            <td className="single-line-cell">{requesterText(r)}</td>
-            <td className="single-line-cell">{r.requesterRole || "-"}</td>
-            <td className="single-line-cell">{r.labName || "-"}</td>
-            <td>{r._item.equipmentName || `Equipment #${r._item.equipmentId}`} × {r._item.quantity}</td>
-            <td className="single-line-cell">{r.fromDate || "-"}</td>
-            <td className="single-line-cell">{r.toDate || "-"}</td>
-            <td>
+          <div key={`${r.requestId}-${r._item.requestItemId}`} className="history-card">
+            <div className="card-row">
+              <strong>Request ID:</strong> {r.requestId}
+              <strong>Requester:</strong> {requesterText(r)}
+              <strong>Role:</strong> {r.requesterRole || "-"}
+            </div>
+            <div className="card-row">
+              <strong>Lab:</strong> {r.labName || "-"}
+              <strong>Item:</strong> {r._item.equipmentName || `Equipment #${r._item.equipmentId}`} × {r._item.quantity}
+            </div>
+            <div className="card-row">
+              <strong>From:</strong> {r.fromDate || "-"}
+              <strong>To:</strong> {r.toDate || "-"}
+              <strong>Status:</strong>
               <span className={`status ${String(r._item.itemStatus || "").toLowerCase()}`}>
                 {r._item.itemStatus || "-"}
               </span>
-            </td>
-            <td className="single-line-cell">
-              {canVerify(r._item.itemStatus) ? (
-                <div className="to-actions" style={{ justifyContent: "center" }}>
-                  <button className="btn-submit" onClick={() => actVerify(r._item.requestItemId, false)}>Verify OK</button>
-                  <button className="btn-cancel" onClick={() => actVerify(r._item.requestItemId, true)}>Mark Damaged</button>
-                </div>
-              ) : (
-                <span style={{ color: "#777" }}>—</span>
-              )}
-            </td>
-          </tr>
+            </div>
+            {canVerify(r._item.itemStatus) && (
+              <div className="card-row actions">
+                <button className="btn-submit" onClick={() => actVerify(r._item.requestItemId, false)}>Verify OK</button>
+                <button className="btn-cancel" onClick={() => actVerify(r._item.requestItemId, true)}>Mark Damaged</button>
+              </div>
+            )}
+          </div>
         ))}
-        {data.length === 0 && !loading && (
-          <tr>
-            <td colSpan="9" style={{ textAlign: "center", color: "#777" }}>{emptyMsg}</td>
-          </tr>
-        )}
-      </tbody>
-    </table>
-  )
+      </div>
+    )
+  }
 
   return (
     <div className="dashboard-container">
@@ -127,10 +109,10 @@ export default function TOHistory() {
           {error && <div className="error-message" style={{ color: "red", marginBottom: 10 }}>{error}</div>}
 
           <h3 style={{ marginTop: 12, marginBottom: 10 }}>Student/Instructor History</h3>
-          {renderTable(historyStudentInstructor, "No returned records")}
+          {renderCards(historyStudentInstructor)}
 
           <h3 style={{ marginTop: 22, marginBottom: 10 }}>Lecturer History</h3>
-          {renderTable(historyLecturer, "No lecturer records")}
+          {renderCards(historyLecturer)}
         </div>
       </div>
     </div>
