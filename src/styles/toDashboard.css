@@ -175,53 +175,42 @@
   color: #555;
 }
 
-.history-cards {
-  display: flex;
-  flex-direction: column;
-  gap: 16px;
-}
-
 .history-card {
   background: #fff;
-  border-radius: 10px;
-  padding: 16px 20px;
-  box-shadow: 0 4px 12px rgba(0,0,0,0.05);
-  display: flex;
-  flex-direction: column;
-  gap: 8px;
+  border-radius: 12px;
+  padding: 16px;
+  margin-bottom: 16px;
+  box-shadow: 0 2px 8px rgba(0,0,0,0.08);
+}
+
+.history-row {
+  margin-bottom: 8px;
   font-size: 14px;
 }
 
-.card-row {
+.history-actions {
   display: flex;
-  flex-wrap: wrap;
-  gap: 16px;
-  align-items: center;
-}
-
-.card-row strong {
-  margin-right: 4px;
-  min-width: 80px;
-}
-
-.card-row.actions {
-  margin-top: 8px;
   gap: 12px;
+  margin-top: 8px;
 }
 
-.btn-submit, .btn-cancel {
-  padding: 8px 16px;
+.history-actions button {
+  flex: 1;
+  padding: 10px;
   border-radius: 6px;
   border: none;
-  cursor: pointer;
   font-weight: 600;
+  cursor: pointer;
 }
 
 .btn-submit { background: #2563eb; color: white; }
-.btn-cancel { background: #dc2626; color: white; }
+.btn-cancel { background: #e5e7eb; color: #111; }
 
-.no-records {
-  text-align: center;
-  color: #777;
-  padding: 20px;
+.status {
+  display: inline-flex;
+  align-items: center;
+  padding: 2px 8px;
+  border-radius: 6px;
+  font-weight: 600;
+  font-size: 13px;
 }
