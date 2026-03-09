@@ -1,4 +1,4 @@
-import "../toDashboard.css"
+import "../styles/toDashboard.css"
 import Sidebar from "../components/Sidebar"
 import Topbar from "../components/Topbar"
 import { useEffect, useMemo, useState } from "react"
