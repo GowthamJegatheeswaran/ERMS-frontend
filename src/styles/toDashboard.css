@@ -1,5 +1,3 @@
-/* toDashboard.css */
-
 /* Main content layout */
 .dashboard-container {
   display: flex;
@@ -23,7 +21,7 @@
   padding-top: 0;
 }
 
-/* Quick action buttons */
+/* Quick action buttons (table row actions) */
 .to-actions {
   display: flex;
   gap: 12px;
@@ -52,13 +50,10 @@
 /* Requests table */
 .requests-table {
   width: 100%;
-  border-collapse: separate;
-  border-spacing: 0;
+  border-collapse: collapse; /* standard table layout */
   margin-top: 15px;
   background: #fff;
   border-radius: 12px;
-  overflow: hidden;
-  box-shadow: 0 6px 18px rgba(0,0,0,0.08);
   font-size: 14px;
 }
 
@@ -68,7 +63,7 @@
   border-bottom: 1px solid #e5e7eb;
   font-size: 14px;
   color: #374151;
-  text-align: center;
+  text-align: center; /* all columns same alignment */
 }
 
 .requests-table th {
@@ -81,14 +76,8 @@
   box-shadow: inset 0 0 0 1px rgba(0,0,0,0.05);
 }
 
-/* Items column stacked and left-aligned */
-.requests-table td:nth-child(4) div {
-  display: flex;
-  flex-direction: column;
-  gap: 4px;
-  text-align: left;
-  min-width: 120px;
-}
+/* --- REMOVED ITEMS COLUMN STACKING --- */
+/* The previous td:nth-child(4) flex/column/gap block is removed */
 
 /* Status pills */
 .status {
@@ -126,14 +115,10 @@
 .status.issued_confirmed { background: #2ecc71; }
 .status.returned_pending_to_verify { background: #f97316; }
 .status.waiting_to_issue { background: #2563eb; }
-.status.return_verified {
-  background: #6b7280; /* gray */
-  color: white;
-}
+.status.return_verified { background: #6b7280; color: white; }
 .status.default { background: #6b7280; color: white; }
 
-/* Quick Actions section */
-/* Dashboard Quick Actions (separate from table actions) */
+/* Dashboard Quick Actions (top buttons) */
 .dashboard-quick-actions {
   display: flex;
   align-items: center;
