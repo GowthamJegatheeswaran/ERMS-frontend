@@ -1,18 +1,15 @@
-import { AiOutlineFileText, AiOutlineClockCircle, AiOutlinePlus } from "react-icons/ai"
 import "../styles/toDashboard.css"
 import Sidebar from "../components/Sidebar"
 import Topbar from "../components/Topbar"
 import { useEffect, useMemo, useState } from "react"
-import { useNavigate } from "react-router-dom"
-import { ToRequestAPI, AuthAPI } from "../api/api" // AuthAPI to fetch TO user info
+import { ToRequestAPI } from "../api/api"
+import { AiOutlineCheck, AiOutlineClockCircle, AiOutlineClose } from "react-icons/ai"
 
-export default function TODashboard() {
-  const navigate = useNavigate()
+export default function TOApprovalRequests() {
   const [sidebarOpen, setSidebarOpen] = useState(false)
   const [rows, setRows] = useState([])
   const [loading, setLoading] = useState(false)
   const [error, setError] = useState("")
-  const [user, setUser] = useState(null) // TO user info
 
   // Load requests
   const load = async () => {
@@ -22,124 +19,131 @@ export default function TODashboard() {
       const list = await ToRequestAPI.all()
       setRows(Array.isArray(list) ? list : [])
     } catch (e) {
-      setError(e?.message || "Failed to load TO requests")
+      setError(e?.message || "Failed to load requests")
     } finally {
       setLoading(false)
     }
   }
 
-  // Fetch requests and TO info on mount
   useEffect(() => {
     load()
-    const fetchUser = async () => {
-      try {
-        const me = await AuthAPI.me()
-        setUser(me)
-      } catch (err) {
-        console.error("Failed to fetch user", err)
-      }
-    }
-    fetchUser()
-    // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [])
 
-  const assigned = useMemo(() => {
-    const active = new Set([
-      "APPROVED_BY_LECTURER",
-      "TO_PROCESSING",
-      "ISSUED_PENDING_STUDENT_ACCEPT",
-      "ISSUED_CONFIRMED",
-      "RETURNED_PENDING_TO_VERIFY",
-    ])
-    return [...rows]
-      .filter((r) => active.has(String(r.status)))
-      .sort((a, b) => (b.requestId || 0) - (a.requestId || 0))
-      .slice(0, 6)
+  // Flatten rows: one per equipment item
+  const sorted = useMemo(() => {
+    const out = []
+    for (const r of rows || []) {
+      const items = Array.isArray(r?.items) ? r.items : []
+      for (const it of items) {
+        out.push({ ...r, _item: it })
+      }
+    }
+    return out.sort((a, b) => (b.requestId || 0) - (a.requestId || 0))
   }, [rows])
 
+  const fmt = (d) => (d ? String(d) : "-")
   const requesterText = (r) => r.requesterRegNo || r.requesterFullName || "-"
+
+  const canIssue = (itemStatus) =>
+    ["APPROVED_BY_LECTURER", "WAITING_TO_ISSUE"].includes(String(itemStatus || ""))
+  const canVerifyReturn = (itemStatus) => String(itemStatus || "") === "RETURN_REQUESTED"
+
+  const actIssue = async (requestItemId) => {
+    setError("")
+    try {
+      await ToRequestAPI.issueItem(requestItemId)
+      await load()
+    } catch (e) {
+      setError(e?.message || "Issue failed")
+    }
+  }
+
+  const actWait = async (requestItemId) => {
+    const reason = window.prompt("Enter reason to wait (optional):", "")
+    if (reason === null) return
+    setError("")
+    try {
+      await ToRequestAPI.waitItem(requestItemId, reason)
+      await load()
+    } catch (e) {
+      setError(e?.message || "Wait action failed")
+    }
+  }
+
+  const actVerify = async (requestItemId, damaged) => {
+    setError("")
+    try {
+      await ToRequestAPI.verifyReturnItem(requestItemId, damaged)
+      await load()
+    } catch (e) {
+      setError(e?.message || "Verify return failed")
+    }
+  }
 
   return (
     <div className="dashboard-container">
       <Sidebar isOpen={sidebarOpen} onClose={() => setSidebarOpen(false)} />
       <div className="main-content">
         <Topbar onMenuClick={() => setSidebarOpen(true)} />
-
         <div className="content">
-          {/* Welcome header with TO name */}
-          <h2 className="welcome">Welcome, {user?.fullName || "Lab Technical Officer"}!</h2>
+          {error && <div className="error-message" style={{ color: "red", marginBottom: 10 }}>{error}</div>}
 
-          {error && <div className="error-message" style={{ color: "red", marginTop: 10 }}>{error}</div>}
-
-          <div className="dashboard-quick-actions">
-  <button onClick={() => navigate("/to-approval-requests")}>
-    <AiOutlineFileText size={18} /> Approval requests
-  </button>
-  <button onClick={() => navigate("/to-history")}>
-    <AiOutlineClockCircle size={18} /> History
-  </button>
-  <button onClick={() => navigate("/to-purchase-new")}>
-    <AiOutlinePlus size={18} /> New Purchase
-  </button>
-</div>
-
-          <h3>Assigned Request List</h3>
           <table className="requests-table">
             <thead>
               <tr>
                 <th>Request_ID</th>
                 <th>Requester</th>
                 <th>Lab</th>
-                <th style={{ textAlign: "center" }}>Status</th>
-                <th style={{ textAlign: "center" }}>Due_Date</th>
+                <th>Item</th>
+                <th>From</th>
+                <th>To</th>
+                <th>Status</th>
+                <th>Actions</th>
               </tr>
             </thead>
-<tbody>
-  {sorted.map((r) => {
-    const it = r._item; // each individual equipment item
-    const statusClass = String(it?.itemStatus || "").toLowerCase();
-    return (
-      <tr key={`${r.requestId}-${it.requestItemId}`}>
-        <td>{r.requestId}</td>
-        <td>{requesterText(r)}</td>
-        <td>{r.labName || "-"}</td>
-        <td>{it.equipmentName || `Equipment #${it.equipmentId}`} × {it.quantity}</td>
-        <td>{r.fromDate || "-"}</td>
-        <td>{r.toDate || "-"}</td>
-        <td>
-          <span className={`status ${statusClass}`}>
-            {it.itemStatus || "-"}
-          </span>
-        </td>
-        <td>
-          {canIssue(it.itemStatus) && (
-            <div className="to-actions">
-              <button onClick={() => actIssue(it.requestItemId)}>
-                <AiOutlineCheck /> Issue
-              </button>
-              <button onClick={() => actWait(it.requestItemId)}>
-                <AiOutlineClockCircle /> Wait
-              </button>
-            </div>
-          )}
-          {canVerifyReturn(it.itemStatus) && (
-            <div className="to-actions">
-              <button onClick={() => actVerify(it.requestItemId, false)}>
-                <AiOutlineCheck /> Verify OK
-              </button>
-              <button onClick={() => actVerify(it.requestItemId, true)}>
-                <AiOutlineClose /> Mark Damaged
-              </button>
-            </div>
-          )}
-          {!canIssue(it.itemStatus) && !canVerifyReturn(it.itemStatus) && (
-            <span style={{ color: "#777" }}>—</span>
-          )}
-        </td>
-      </tr>
-    );
-  })}
-</tbody>
+            <tbody>
+              {sorted.map((r) => {
+                const it = r._item
+                const statusClass = it?.itemStatus ? String(it.itemStatus).toLowerCase() : "status-default"
+                return (
+                  <tr key={`${r.requestId}-${it.requestItemId}`}>
+                    <td>{r.requestId}</td>
+                    <td>{requesterText(r)}</td>
+                    <td>{r.labName || "-"}</td>
+                    <td>{it.equipmentName || `Equipment #${it.equipmentId}`} × {it.quantity}</td>
+                    <td>{fmt(r.fromDate)}</td>
+                    <td>{fmt(r.toDate)}</td>
+                    <td>
+                      <span className={`status ${statusClass}`}>
+                        {it.itemStatus || "-"}
+                      </span>
+                    </td>
+                    <td>
+                      {canIssue(it.itemStatus) && (
+                        <div className="to-actions">
+                          <button onClick={() => actIssue(it.requestItemId)}><AiOutlineCheck /> Issue</button>
+                          <button onClick={() => actWait(it.requestItemId)}><AiOutlineClockCircle /> Wait</button>
+                        </div>
+                      )}
+                      {canVerifyReturn(it.itemStatus) && (
+                        <div className="to-actions">
+                          <button onClick={() => actVerify(it.requestItemId, false)}><AiOutlineCheck /> Verify OK</button>
+                          <button onClick={() => actVerify(it.requestItemId, true)}><AiOutlineClose /> Mark Damaged</button>
+                        </div>
+                      )}
+                      {!canIssue(it.itemStatus) && !canVerifyReturn(it.itemStatus) && (
+                        <span style={{ color: "#777" }}>—</span>
+                      )}
+                    </td>
+                  </tr>
+                )
+              })}
+              {sorted.length === 0 && !loading && (
+                <tr>
+                  <td colSpan="8" style={{ textAlign: "center" }}>No requests</td>
+                </tr>
+              )}
+            </tbody>
           </table>
         </div>
       </div>

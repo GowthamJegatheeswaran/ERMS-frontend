@@ -25,7 +25,7 @@
 /* Table row actions buttons (Issue / Wait / Verify / Mark Damaged) */
 .to-actions {
   display: flex;
-  gap: 12px; /* space between buttons */
+  gap: 12px;
 }
 
 .to-actions button {
@@ -33,16 +33,19 @@
   align-items: center;
   justify-content: center;
   gap: 8px;
-  padding: 12px 22px;  /* bigger buttons */
+  padding: 12px 22px;  /* larger buttons */
   min-width: 80px;
   font-size: 14px;
   border: 1px solid #d1d5db;
   border-radius: 8px;
   background: #f3f4f6;
-  color: #111827;
   font-weight: 600;
   cursor: pointer;
   transition: all 0.2s ease;
+}
+
+.requests-table td {
+  text-align: center;  /* all columns aligned */
 }
 
 .to-actions button:hover {
