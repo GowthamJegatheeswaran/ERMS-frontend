@@ -25,6 +25,7 @@ export default function TOHistory() {
 
   useEffect(() => {
     load()
+    // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [])
 
   const history = useMemo(() => {
@@ -75,10 +76,10 @@ export default function TOHistory() {
       <div className="main-content">
         <Topbar onMenuClick={() => setSidebarOpen(true)} />
         <div className="content">
-          <h2 className="welcome">TO History</h2>
 
           {error && <div className="error-message" style={{ color: "red", marginBottom: 10 }}>{error}</div>}
 
+          {/* Student/Instructor History */}
           <h3 style={{ marginTop: 12, marginBottom: 10 }}>Student/Instructor History</h3>
           <table className="requests-table">
             <thead>
@@ -98,7 +99,7 @@ export default function TOHistory() {
                   <td style={{ textAlign: "center" }}>{r.requestId}</td>
                   <td>{requesterText(r)}</td>
                   <td style={{ textAlign: "center" }}>{r.requesterRole || "-"}</td>
-                  <td>{r.labName || "-"}</td>
+                  <td style={{ textAlign: "center" }}>{r.labName || "-"}</td>
                   <td>{renderItems(r)}</td>
                   <td style={{ textAlign: "center" }}>
                     <span className={`status ${String(r._itemStatus || "").toLowerCase()}`}>
@@ -123,6 +124,7 @@ export default function TOHistory() {
             </tbody>
           </table>
 
+          {/* Lecturer History */}
           <h3 style={{ marginTop: 22, marginBottom: 10 }}>Lecturer History</h3>
           <table className="requests-table">
             <thead>
@@ -142,7 +144,7 @@ export default function TOHistory() {
                   <td style={{ textAlign: "center" }}>{r.requestId}</td>
                   <td>{requesterText(r)}</td>
                   <td style={{ textAlign: "center" }}>{r.requesterRole || "-"}</td>
-                  <td>{r.labName || "-"}</td>
+                  <td style={{ textAlign: "center" }}>{r.labName || "-"}</td>
                   <td>{renderItems(r)}</td>
                   <td style={{ textAlign: "center" }}>
                     <span className={`status ${String(r._itemStatus || "").toLowerCase()}`}>
