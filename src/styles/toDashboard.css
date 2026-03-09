@@ -126,7 +126,10 @@
 .status.issued_confirmed { background: #2ecc71; }
 .status.returned_pending_to_verify { background: #f97316; }
 .status.waiting_to_issue { background: #2563eb; }
-.status.return_verified { background: #16a34a; } /* Added missing */
+.status.return_verified {
+  background: #6b7280; /* gray */
+  color: white;
+}
 .status.default { background: #6b7280; color: white; }
 
 .requests-table td:nth-child(4) div {
