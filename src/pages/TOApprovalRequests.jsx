@@ -44,6 +44,21 @@ export default function TOApprovalRequests() {
   const fmt = (d) => (d ? String(d) : "-")
   const requesterText = (r) => r.requesterRegNo || r.requesterFullName || "-"
 
+  // Status mapping to CSS class
+  const statusMap = {
+    PENDING_LECTURER_APPROVAL: "pending_lecturer_approval",
+    APPROVED_BY_LECTURER: "approved_by_lecturer",
+    REJECTED_BY_LECTURER: "rejected_by_lecturer",
+    RETURN_REQUESTED: "returnrequested",
+    RETURNED_PENDING_TO_VERIFY: "returned_pending_to_verify",
+    RETURN_VERIFIED: "return_verified",
+    ISSUED_PENDING_STUDENT_ACCEPT: "issued_pending_student_accept",
+    ISSUED_CONFIRMED: "issued_confirmed",
+    TO_PROCESSING: "to_processing",
+    WAITING_TO_ISSUE: "waiting_to_issue",
+    default: "default",
+  }
+
   const canIssue = (itemStatus) =>
     ["APPROVED_BY_LECTURER", "WAITING_TO_ISSUE"].includes(String(itemStatus || ""))
   const canVerifyReturn = (itemStatus) => String(itemStatus || "") === "RETURN_REQUESTED"
@@ -101,53 +116,53 @@ export default function TOApprovalRequests() {
                 <th>Actions</th>
               </tr>
             </thead>
- <tbody>
-  {sorted.map((r) => {
-    const it = r._item; // individual equipment item
-    const statusClass = String(it?.itemStatus || "").toLowerCase();
+            <tbody>
+              {sorted.map((r) => {
+                const it = r._item // individual equipment item
+                const statusClass = statusMap[it.itemStatus] || statusMap.default
 
-    return (
-      <tr key={`${r.requestId}-${it.requestItemId}`}>
-        <td>{r.requestId}</td>
-        <td>{requesterText(r)}</td>
-        <td>{r.labName || "-"}</td>
-        <td>{it.equipmentName || `Equipment #${it.equipmentId}`} × {it.quantity}</td>
-        <td>{r.fromDate || "-"}</td>
-        <td>{r.toDate || "-"}</td>
-        <td>
-          <span className={`status ${statusClass}`}>
-            {it.itemStatus || "-"}
-          </span>
-        </td>
-        <td>
-          {canIssue(it.itemStatus) && (
-            <div className="to-actions">
-              <button onClick={() => actIssue(it.requestItemId)}>
-                <AiOutlineCheck /> Issue
-              </button>
-              <button onClick={() => actWait(it.requestItemId)}>
-                <AiOutlineClockCircle /> Wait
-              </button>
-            </div>
-          )}
-          {canVerifyReturn(it.itemStatus) && (
-            <div className="to-actions">
-              <button onClick={() => actVerify(it.requestItemId, false)}>
-                <AiOutlineCheck /> Verify OK
-              </button>
-              <button onClick={() => actVerify(it.requestItemId, true)}>
-                <AiOutlineClose /> Mark Damaged
-              </button>
-            </div>
-          )}
-          {!canIssue(it.itemStatus) && !canVerifyReturn(it.itemStatus) && (
-            <span style={{ color: "#777" }}>—</span>
-          )}
-        </td>
-      </tr>
-    );
-  })}
-</tbody>
+                return (
+                  <tr key={`${r.requestId}-${it.requestItemId}`}>
+                    <td>{r.requestId}</td>
+                    <td>{requesterText(r)}</td>
+                    <td>{r.labName || "-"}</td>
+                    <td>{it.equipmentName || `Equipment #${it.equipmentId}`} × {it.quantity}</td>
+                    <td>{fmt(r.fromDate)}</td>
+                    <td>{fmt(r.toDate)}</td>
+                    <td>
+                      <span className={`status ${statusClass}`}>
+                        {it.itemStatus || "-"}
+                      </span>
+                    </td>
+                    <td>
+                      {canIssue(it.itemStatus) && (
+                        <div className="to-actions">
+                          <button onClick={() => actIssue(it.requestItemId)}>
+                            <AiOutlineCheck /> Issue
+                          </button>
+                          <button onClick={() => actWait(it.requestItemId)}>
+                            <AiOutlineClockCircle /> Wait
+                          </button>
+                        </div>
+                      )}
+                      {canVerifyReturn(it.itemStatus) && (
+                        <div className="to-actions">
+                          <button onClick={() => actVerify(it.requestItemId, false)}>
+                            <AiOutlineCheck /> Verify OK
+                          </button>
+                          <button onClick={() => actVerify(it.requestItemId, true)}>
+                            <AiOutlineClose /> Mark Damaged
+                          </button>
+                        </div>
+                      )}
+                      {!canIssue(it.itemStatus) && !canVerifyReturn(it.itemStatus) && (
+                        <span style={{ color: "#777" }}>—</span>
+                      )}
+                    </td>
+                  </tr>
+                )
+              })}
+            </tbody>
           </table>
         </div>
       </div>
