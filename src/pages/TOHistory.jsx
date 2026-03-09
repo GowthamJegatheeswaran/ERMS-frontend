@@ -80,94 +80,93 @@ export default function TOHistory() {
           {error && <div className="error-message" style={{ color: "red", marginBottom: 10 }}>{error}</div>}
 
           {/* Student/Instructor History */}
-          <h3 style={{ marginTop: 12, marginBottom: 10 }}>Student/Instructor History</h3>
-          <table className="requests-table">
-            <thead>
-              <tr>
-                <th>Request_ID</th>
-                <th>Requester</th>
-                <th>Role</th>
-                <th>Lab</th>
-                <th>Items</th>
-                <th style={{ textAlign: "center" }}>Status</th>
-                <th style={{ textAlign: "center" }}>Verify</th>
-              </tr>
-            </thead>
-            <tbody>
-              {historyStudentInstructor.map((r) => (
-                <tr key={`${r.requestId}-${r?._item?.requestItemId || "x"}`}>
-                  <td style={{ textAlign: "center" }}>{r.requestId}</td>
-                  <td>{requesterText(r)}</td>
-                  <td style={{ textAlign: "center" }}>{r.requesterRole || "-"}</td>
-                  <td style={{ textAlign: "center" }}>{r.labName || "-"}</td>
-                  <td>{renderItems(r)}</td>
-                  <td style={{ textAlign: "center" }}>
-                    <span className={`status ${String(r._itemStatus || "").toLowerCase()}`}>
-                      {r._itemStatus || "-"}
-                    </span>
-                  </td>
-                  <td style={{ textAlign: "center" }}>
-                    {canVerifyReturn(r._itemStatus) ? (
-                      <div className="to-actions" style={{ justifyContent: "center" }}>
-                        <button className="btn-submit" type="button" onClick={() => actVerify(r?._item?.requestItemId, false)}>Verify OK</button>
-                        <button className="btn-cancel" type="button" onClick={() => actVerify(r?._item?.requestItemId, true)}>Mark Damaged</button>
-                      </div>
-                    ) : <span style={{ color: "#777" }}>—</span>}
-                  </td>
-                </tr>
-              ))}
-              {historyStudentInstructor.length === 0 && !loading && (
-                <tr>
-                  <td colSpan="7" style={{ textAlign: "center" }}>No returned records</td>
-                </tr>
-              )}
-            </tbody>
-          </table>
+       <h3 style={{ marginBottom: 10 }}>Student/Instructor History</h3>
+<table className="requests-table">
+  <thead>
+    <tr>
+      <th>Request_ID</th>
+      <th>Requester</th>
+      <th>Role</th>
+      <th>Lab</th>
+      <th>Items</th>
+      <th>Status</th>
+      <th>Verify</th>
+    </tr>
+  </thead>
+  <tbody>
+    {historyStudentInstructor.map((r) => {
+      const it = r._item
+      return (
+        <tr key={`${r.requestId}-${it.requestItemId}`}>
+          <td>{r.requestId}</td>
+          <td>{requesterText(r)}</td>
+          <td>{r.requesterRole || "-"}</td>
+          <td>{r.labName || "-"}</td>
+          <td>{it.equipmentName || `Equipment #${it.equipmentId}`} × {it.quantity}</td>
+          <td>
+            <span className={`status ${String(r._itemStatus || "").toLowerCase()}`}>
+              {r._itemStatus || "-"}
+            </span>
+          </td>
+          <td>
+            {canVerifyReturn(r._itemStatus) ? (
+              <div className="to-actions">
+                <button className="btn-submit" type="button" onClick={() => actVerify(it.requestItemId, false)}>Verify OK</button>
+                <button className="btn-cancel" type="button" onClick={() => actVerify(it.requestItemId, true)}>Mark Damaged</button>
+              </div>
+            ) : (
+              <span style={{ color: "#777" }}>—</span>
+            )}
+          </td>
+        </tr>
+      )
+    })}
+  </tbody>
+</table>
 
-          {/* Lecturer History */}
-          <h3 style={{ marginTop: 22, marginBottom: 10 }}>Lecturer History</h3>
-          <table className="requests-table">
-            <thead>
-              <tr>
-                <th>Request_ID</th>
-                <th>Requester</th>
-                <th>Role</th>
-                <th>Lab</th>
-                <th>Items</th>
-                <th style={{ textAlign: "center" }}>Status</th>
-                <th style={{ textAlign: "center" }}>Verify</th>
-              </tr>
-            </thead>
-            <tbody>
-              {historyLecturer.map((r) => (
-                <tr key={`L-${r.requestId}-${r?._item?.requestItemId || "x"}`}>
-                  <td style={{ textAlign: "center" }}>{r.requestId}</td>
-                  <td>{requesterText(r)}</td>
-                  <td style={{ textAlign: "center" }}>{r.requesterRole || "-"}</td>
-                  <td style={{ textAlign: "center" }}>{r.labName || "-"}</td>
-                  <td>{renderItems(r)}</td>
-                  <td style={{ textAlign: "center" }}>
-                    <span className={`status ${String(r._itemStatus || "").toLowerCase()}`}>
-                      {r._itemStatus || "-"}
-                    </span>
-                  </td>
-                  <td style={{ textAlign: "center" }}>
-                    {canVerifyReturn(r._itemStatus) ? (
-                      <div className="to-actions" style={{ justifyContent: "center" }}>
-                        <button className="btn-submit" type="button" onClick={() => actVerify(r?._item?.requestItemId, false)}>Verify OK</button>
-                        <button className="btn-cancel" type="button" onClick={() => actVerify(r?._item?.requestItemId, true)}>Mark Damaged</button>
-                      </div>
-                    ) : <span style={{ color: "#777" }}>—</span>}
-                  </td>
-                </tr>
-              ))}
-              {historyLecturer.length === 0 && !loading && (
-                <tr>
-                  <td colSpan="7" style={{ textAlign: "center" }}>No lecturer records</td>
-                </tr>
-              )}
-            </tbody>
-          </table>
+<h3 style={{ marginTop: 22, marginBottom: 10 }}>Lecturer History</h3>
+<table className="requests-table">
+  <thead>
+    <tr>
+      <th>Request_ID</th>
+      <th>Requester</th>
+      <th>Role</th>
+      <th>Lab</th>
+      <th>Items</th>
+      <th>Status</th>
+      <th>Verify</th>
+    </tr>
+  </thead>
+  <tbody>
+    {historyLecturer.map((r) => {
+      const it = r._item
+      return (
+        <tr key={`L-${r.requestId}-${it.requestItemId}`}>
+          <td>{r.requestId}</td>
+          <td>{requesterText(r)}</td>
+          <td>{r.requesterRole || "-"}</td>
+          <td>{r.labName || "-"}</td>
+          <td>{it.equipmentName || `Equipment #${it.equipmentId}`} × {it.quantity}</td>
+          <td>
+            <span className={`status ${String(r._itemStatus || "").toLowerCase()}`}>
+              {r._itemStatus || "-"}
+            </span>
+          </td>
+          <td>
+            {canVerifyReturn(r._itemStatus) ? (
+              <div className="to-actions">
+                <button className="btn-submit" type="button" onClick={() => actVerify(it.requestItemId, false)}>Verify OK</button>
+                <button className="btn-cancel" type="button" onClick={() => actVerify(it.requestItemId, true)}>Mark Damaged</button>
+              </div>
+            ) : (
+              <span style={{ color: "#777" }}>—</span>
+            )}
+          </td>
+        </tr>
+      )
+    })}
+  </tbody>
+</table>
         </div>
       </div>
     </div>
