@@ -52,10 +52,10 @@ export default function TODashboard() {
       "ISSUED_PENDING_STUDENT_ACCEPT",
       "ISSUED_CONFIRMED",
       "RETURNED_PENDING_TO_VERIFY",
+      "RETURN_VERIFIED",
     ])
     const out = []
     for (const r of rows || []) {
-      if (!activeStatuses.has(String(r.status))) continue
       const items = Array.isArray(r.items) ? r.items : []
       for (const it of items) {
         out.push({ ...r, _item: it })
@@ -63,6 +63,12 @@ export default function TODashboard() {
     }
     return out.sort((a, b) => (b.requestId || 0) - (a.requestId || 0))
   }, [rows])
+
+  // Function to map itemStatus to a CSS class
+  const getStatusClass = (status) => {
+    if (!status) return "default"
+    return String(status).toLowerCase()
+  }
 
   return (
     <div className="dashboard-container">
@@ -101,26 +107,35 @@ export default function TODashboard() {
               </tr>
             </thead>
             <tbody>
-  {assigned.map((r) => {
-    const it = r._item; // flatten each request per equipment
-    const statusClass = String(it.itemStatus || "default").toLowerCase(); // map itemStatus to CSS class
-    return (
-      <tr key={`${r.requestId}-${it.requestItemId}`}>
-        <td>{r.requestId}</td>
-        <td>{requesterText(r)}</td>
-        <td>{r.labName || "-"}</td>
-        <td>{it.equipmentName || `Equipment #${it.equipmentId}`} × {it.quantity}</td>
-        <td>{r.fromDate || "-"}</td>
-        <td>{r.toDate || "-"}</td>
-        <td>
-          <span className={`status ${statusClass}`}>
-            {it.itemStatus || "-"}
-          </span>
-        </td>
-      </tr>
-    )
-  })}
-</tbody>
+              {assigned.map((r) => {
+                const it = r._item
+                const statusClass = getStatusClass(it.itemStatus)
+
+                return (
+                  <tr key={`${r.requestId}-${it.requestItemId}`}>
+                    <td>{r.requestId}</td>
+                    <td>{requesterText(r)}</td>
+                    <td>{r.labName || "-"}</td>
+                    <td>{it.equipmentName || `Equipment #${it.equipmentId}`} × {it.quantity}</td>
+                    <td>{r.fromDate || "-"}</td>
+                    <td>{r.toDate || "-"}</td>
+                    <td>
+                      <span className={`status ${statusClass}`}>
+                        {it.itemStatus || "-"}
+                      </span>
+                    </td>
+                  </tr>
+                )
+              })}
+
+              {assigned.length === 0 && !loading && (
+                <tr>
+                  <td colSpan="7" style={{ textAlign: "center" }}>
+                    No assigned requests
+                  </td>
+                </tr>
+              )}
+            </tbody>
           </table>
         </div>
       </div>
