@@ -1,4 +1,4 @@
-import "..styles/TOPurchaseNew.css";
+import "../styles/TOPurchaseNew.css";
 import Sidebar from "../components/Sidebar";
 import Topbar from "../components/Topbar";
 import { useEffect, useMemo, useState } from "react";
