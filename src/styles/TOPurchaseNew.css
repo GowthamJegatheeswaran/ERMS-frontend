@@ -103,6 +103,7 @@ select, input {
   flex-direction: column;
   gap: 10px;
   margin-bottom: 16px;
+  max-width: 480px;
 }
 
 .item-row {
