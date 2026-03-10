@@ -2,11 +2,12 @@ import "../styles/login.css"
 import { useState, useMemo } from "react"
 import { useNavigate } from "react-router-dom"
 import { useRequests } from "../context/RequestContext"
+import ForgotModal from "../components/ForgotModal"
 
 export default function LoginSignup() {
   const navigate = useNavigate()
   const { authenticate, registerStudent } = useRequests()
-
+  const [showForgot, setShowForgot] = useState(false)
   const [showSignup, setShowSignup] = useState(false)
 
   // ---------- LOGIN STATE ----------
@@ -149,6 +150,12 @@ export default function LoginSignup() {
                 required
               />
 
+              <div className="options">
+  <span className="link" onClick={() => setShowForgot(true)}>
+    Forgot Password?
+  </span>
+</div>
+
               <button type="submit" className="login-btn">Sign In</button>
 
               <p>
@@ -203,6 +210,7 @@ export default function LoginSignup() {
           )}
         </div>
       </div>
+          {showForgot && <ForgotModal onClose={() => setShowForgot(false)} />}
     </div>
   )
 }
