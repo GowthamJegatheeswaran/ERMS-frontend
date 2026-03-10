@@ -34,9 +34,15 @@ export default function InstructorDashboard() {
   }, [])
 
   const counts = useMemo(() => {
-    const pending = rows.filter((r) => String(r.status) === "PENDING_LECTURER_APPROVAL").length
-    const rejected = rows.filter((r) => String(r.status) === "REJECTED_BY_LECTURER").length
-    const approved = rows.length - pending - rejected
+    const hasItemStatus = (r, status) => {
+      const items = Array.isArray(r?.items) ? r.items : []
+      return items.some((it) => String(it?.itemStatus || "") === status)
+    }
+
+    const pending = rows.filter((r) => hasItemStatus(r, "PENDING_LECTURER_APPROVAL") || String(r.status) === "PENDING_LECTURER_APPROVAL").length
+    const rejected = rows.filter((r) => hasItemStatus(r, "REJECTED_BY_LECTURER") || String(r.status) === "REJECTED_BY_LECTURER").length
+    const approved = rows.filter((r) => !hasItemStatus(r, "PENDING_LECTURER_APPROVAL") && !hasItemStatus(r, "REJECTED_BY_LECTURER") && String(r.status) !== "PENDING_LECTURER_APPROVAL" && String(r.status) !== "REJECTED_BY_LECTURER").length
+
     return { pending, approved, rejected, total: rows.length }
   }, [rows])
 
@@ -62,12 +68,29 @@ export default function InstructorDashboard() {
         <div className="content">
           <h2 className="welcome">Instructor Dashboard</h2>
 
-          <div style={{ display: "flex", justifyContent: "space-between", alignItems: "center" }}>
+          <div style={{ display: "flex", alignItems: "center", gap: "10px" }}>
             <h3 style={{ margin: 0 }}>Quick Summary Card</h3>
-            <button className="btn-submit" type="button" onClick={load} disabled={loading}>
-              {loading ? "Loading..." : "Refresh"}
-            </button>
-          </div>
+  <button
+    type="button"
+    onClick={load}
+    disabled={loading}
+    style={{
+      display: "flex",
+      alignItems: "center",
+      gap: "5px",
+      padding: "4px 10px",
+      fontSize: "12px",
+      backgroundColor: "#2f64d6",
+      color: "white",
+      border: "none",
+      borderRadius: "4px",
+      cursor: "pointer"
+    }}
+  >
+    🔄 {loading ? "Loading..." : "Refresh"}
+  </button>
+
+</div>
 
           {error && (
             <div className="error-message" style={{ color: "red", marginTop: 10 }}>

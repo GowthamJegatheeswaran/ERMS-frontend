@@ -15,6 +15,7 @@ export default function AdminUsers() {
   const [loading, setLoading] = useState(false)
   const [error, setError] = useState("")
   const [notice, setNotice] = useState("")
+  const [editingStudent, setEditingStudent] = useState(null)
 
   const loadDepartments = async () => {
     setError("")
@@ -44,12 +45,10 @@ export default function AdminUsers() {
 
   useEffect(() => {
     loadDepartments()
-    // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [])
 
   useEffect(() => {
     if (dept) loadUsers(dept)
-    // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [dept])
 
   const refresh = async () => {
@@ -62,11 +61,11 @@ export default function AdminUsers() {
     try {
       if (!payload.fullName || !emailOk(payload.email) || !payload.initialPassword) {
         setError("Please fill valid name, email and password")
-        return
+        return false
       }
       if (!strongPwd(payload.initialPassword)) {
         setError("Password must be 8+ chars with uppercase, lowercase, number & special")
-        return
+        return false
       }
 
       const common = { ...payload, department: dept }
@@ -75,25 +74,57 @@ export default function AdminUsers() {
       else if (roleKey === "to") await AdminAPI.createTo(common)
       else if (roleKey === "lecturer") await AdminAPI.createLecturer(common)
       else if (roleKey === "staff") await AdminAPI.createStaff(common)
-      else if (roleKey === "student") await AdminAPI.createStudent(common)
+      else {
+        setError("Student adding is disabled here")
+        return false
+      }
 
       setNotice(`${roleKey.toUpperCase()} created successfully`)
       await refresh()
+      return true
     } catch (e) {
       setError(e?.message || "Create failed")
+      return false
     }
   }
 
   const onRemove = async (id) => {
-    if (!window.confirm(`Remove/Disable user ${id}?`)) return
+    if (!window.confirm(`Remove user ${id}?`)) return
     setError("")
     setNotice("")
     try {
       await AdminAPI.deleteUser(id)
-      setNotice("User removed/disabled")
+      setNotice("User removed successfully")
       await refresh()
     } catch (e) {
       setError(e?.message || "Remove failed")
+    }
+  }
+
+  const onDisable = async (user) => {
+    const isEnableAction = user?.enabled === false
+    if (!window.confirm(`${isEnableAction ? "Activate" : "Disable"} user ${user?.id}?`)) return
+    setError("")
+    setNotice("")
+    try {
+      await AdminAPI.disableUser(user.id)
+      setNotice(isEnableAction ? "User activated successfully" : "User disabled successfully")
+      await refresh()
+    } catch (e) {
+      setError(e?.message || `${isEnableAction ? "Activate" : "Disable"} failed`)
+    }
+  }
+
+  const onUpdateStudent = async (id, payload) => {
+    setError("")
+    setNotice("")
+    try {
+      await AdminAPI.updateUser(id, payload)
+      setNotice("Student updated successfully")
+      setEditingStudent(null)
+      await refresh()
+    } catch (e) {
+      setError(e?.message || "Update failed")
     }
   }
 
@@ -141,19 +172,31 @@ export default function AdminUsers() {
               rows={groups.hods}
               onCreate={onCreate}
               onRemove={onRemove}
-              note="Usually 1 HOD per department"
+              onDisable={onDisable}
+              note="Only one HOD is allowed for one department"
             />
 
-            <UserGroup title="Technical Officers" roleKey="to" rows={groups.tos} onCreate={onCreate} onRemove={onRemove} />
+            <UserGroup title="Technical Officers" roleKey="to" rows={groups.tos} onCreate={onCreate} onRemove={onRemove} onDisable={onDisable} />
 
-            <UserGroup title="Lecturers" roleKey="lecturer" rows={groups.lecturers} onCreate={onCreate} onRemove={onRemove} />
+            <UserGroup title="Lecturers" roleKey="lecturer" rows={groups.lecturers} onCreate={onCreate} onRemove={onRemove} onDisable={onDisable} />
 
-            {/* Instructor UI = STAFF in backend */}
-            <UserGroup title="Instructors (STAFF)" roleKey="staff" rows={groups.staff} onCreate={onCreate} onRemove={onRemove} />
+            <UserGroup title="Instructors (STAFF)" roleKey="staff" rows={groups.staff} onCreate={onCreate} onRemove={onRemove} onDisable={onDisable} />
 
-            <UserGroup title="Students" roleKey="student" rows={groups.students} onCreate={onCreate} onRemove={onRemove} showRegNo />
+            <StudentGroup
+              rows={groups.students}
+              onRemove={onRemove}
+              onEdit={setEditingStudent}
+            />
           </div>
         </div>
+
+        {editingStudent && (
+          <EditStudentModal
+            student={editingStudent}
+            onClose={() => setEditingStudent(null)}
+            onSave={onUpdateStudent}
+          />
+        )}
 
         <footer>
           Faculty of Engineering | University of Jaffna <br />© Copyright 2026. All Rights Reserved - ERS
@@ -163,10 +206,9 @@ export default function AdminUsers() {
   )
 }
 
-function UserGroup({ title, roleKey, rows, onCreate, onRemove, note, showRegNo = false }) {
+function UserGroup({ title, roleKey, rows, onCreate, onRemove, onDisable, note }) {
   const [fullName, setFullName] = useState("")
   const [email, setEmail] = useState("")
-  const [regNo, setRegNo] = useState("")
   const [pwd, setPwd] = useState("")
   const [pwd2, setPwd2] = useState("")
   const [msg, setMsg] = useState("")
@@ -186,18 +228,18 @@ function UserGroup({ title, roleKey, rows, onCreate, onRemove, note, showRegNo =
       return
     }
 
-    await onCreate(roleKey, {
+    const ok = await onCreate(roleKey, {
       fullName,
       email,
-      regNo: showRegNo ? (regNo || "") : null,
       initialPassword: pwd,
     })
 
-    setFullName("")
-    setEmail("")
-    setRegNo("")
-    setPwd("")
-    setPwd2("")
+    if (ok) {
+      setFullName("")
+      setEmail("")
+      setPwd("")
+      setPwd2("")
+    }
   }
 
   return (
@@ -209,7 +251,6 @@ function UserGroup({ title, roleKey, rows, onCreate, onRemove, note, showRegNo =
       <div style={{ display: "flex", gap: 8, flexWrap: "wrap", alignItems: "center", marginBottom: 10 }}>
         <input placeholder="Full name" value={fullName} onChange={(e) => setFullName(e.target.value)} />
         <input placeholder="Email" value={email} onChange={(e) => setEmail(e.target.value)} />
-        {showRegNo && <input placeholder="Reg No" value={regNo} onChange={(e) => setRegNo(e.target.value)} />}
         <input placeholder="Initial password" type="password" value={pwd} onChange={(e) => setPwd(e.target.value)} />
         <input placeholder="Confirm password" type="password" value={pwd2} onChange={(e) => setPwd2(e.target.value)} />
         <button className="btn-submit" type="button" onClick={submit}>
@@ -220,9 +261,10 @@ function UserGroup({ title, roleKey, rows, onCreate, onRemove, note, showRegNo =
       <table className="requests-table">
         <thead>
           <tr>
-            <th style={{ width: "45%" }}>Name</th>
+            <th style={{ width: "32%" }}>Name</th>
             <th>Email</th>
-            <th style={{ width: 120, textAlign: "center" }}>Action</th>
+            <th style={{ width: 120 }}>Status</th>
+            <th style={{ width: 220, textAlign: "center" }}>Action</th>
           </tr>
         </thead>
         <tbody>
@@ -230,7 +272,54 @@ function UserGroup({ title, roleKey, rows, onCreate, onRemove, note, showRegNo =
             <tr key={u.id}>
               <td>{u.fullName || u.name || "-"}</td>
               <td>{u.email || "-"}</td>
-              <td style={{ textAlign: "center" }}>
+              <td>{u.enabled === false ? "Disabled" : "Active"}</td>
+              <td style={{ textAlign: "center", display: "flex", gap: 8, justifyContent: "center", flexWrap: "wrap" }}>
+                <button className="btn-cancel" type="button" onClick={() => onRemove(u.id)}>
+                  Remove
+                </button>
+                <button className="btn-submit" type="button" onClick={() => onDisable(u)}>
+                  {u.enabled === false ? "Active" : "Disable"}
+                </button>
+              </td>
+            </tr>
+          ))}
+          {(rows || []).length === 0 && (
+            <tr>
+              <td colSpan="4" style={{ textAlign: "center" }}>
+                No users
+              </td>
+            </tr>
+          )}
+        </tbody>
+      </table>
+    </div>
+  )
+}
+
+function StudentGroup({ rows, onRemove, onEdit }) {
+  return (
+    <div>
+      <h3 style={{ marginBottom: 6 }}>Students</h3>
+
+      <table className="requests-table">
+        <thead>
+          <tr>
+            <th style={{ width: "30%" }}>Name</th>
+            <th style={{ width: "18%" }}>Reg No</th>
+            <th>Email</th>
+            <th style={{ width: 180, textAlign: "center" }}>Action</th>
+          </tr>
+        </thead>
+        <tbody>
+          {(rows || []).map((u) => (
+            <tr key={u.id}>
+              <td>{u.fullName || "-"}</td>
+              <td>{u.regNo || "-"}</td>
+              <td>{u.email || "-"}</td>
+              <td style={{ textAlign: "center", display: "flex", gap: 8, justifyContent: "center", flexWrap: "wrap" }}>
+                <button className="btn-submit" type="button" onClick={() => onEdit(u)}>
+                  Edit
+                </button>
                 <button className="btn-cancel" type="button" onClick={() => onRemove(u.id)}>
                   Remove
                 </button>
@@ -239,13 +328,66 @@ function UserGroup({ title, roleKey, rows, onCreate, onRemove, note, showRegNo =
           ))}
           {(rows || []).length === 0 && (
             <tr>
-              <td colSpan="3" style={{ textAlign: "center" }}>
-                No users
+              <td colSpan="4" style={{ textAlign: "center" }}>
+                No students
               </td>
             </tr>
           )}
         </tbody>
       </table>
+    </div>
+  )
+}
+
+function EditStudentModal({ student, onClose, onSave }) {
+  const [fullName, setFullName] = useState(student?.fullName || "")
+  const [regNo, setRegNo] = useState(student?.regNo || "")
+  const [msg, setMsg] = useState("")
+  const [saving, setSaving] = useState(false)
+
+  const submit = async () => {
+    setMsg("")
+    if (!fullName.trim() || !regNo.trim()) {
+      setMsg("Name and Reg No are required")
+      return
+    }
+
+    try {
+      setSaving(true)
+      await onSave(student.id, { fullName: fullName.trim(), regNo: regNo.trim() })
+    } finally {
+      setSaving(false)
+    }
+  }
+
+  return (
+    <div style={{ position: "fixed", inset: 0, background: "rgba(0,0,0,0.35)", display: "flex", alignItems: "center", justifyContent: "center", zIndex: 1000, padding: 16 }}>
+      <div style={{ background: "#fff", borderRadius: 16, padding: 20, width: "100%", maxWidth: 480, boxShadow: "0 10px 30px rgba(0,0,0,0.18)" }}>
+        <h3 style={{ marginTop: 0, marginBottom: 12 }}>Edit Student</h3>
+        {msg && <div style={{ marginBottom: 10, color: "#a00" }}>{msg}</div>}
+        <div style={{ display: "grid", gap: 10 }}>
+          <div>
+            <label style={{ display: "block", marginBottom: 6 }}>Name</label>
+            <input style={{ width: "100%" }} value={fullName} onChange={(e) => setFullName(e.target.value)} />
+          </div>
+          <div>
+            <label style={{ display: "block", marginBottom: 6 }}>Reg No</label>
+            <input style={{ width: "100%" }} value={regNo} onChange={(e) => setRegNo(e.target.value)} />
+          </div>
+          <div>
+            <label style={{ display: "block", marginBottom: 6 }}>Email</label>
+            <input style={{ width: "100%", background: "#f5f5f5" }} value={student?.email || ""} disabled />
+          </div>
+        </div>
+        <div style={{ display: "flex", justifyContent: "flex-end", gap: 10, marginTop: 18 }}>
+          <button className="btn-cancel" type="button" onClick={onClose} disabled={saving}>
+            Cancel
+          </button>
+          <button className="btn-submit" type="button" onClick={submit} disabled={saving}>
+            {saving ? "Saving..." : "Save"}
+          </button>
+        </div>
+      </div>
     </div>
   )
 }

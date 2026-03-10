@@ -29,15 +29,19 @@ export default function InstructorHistory() {
   }, [])
 
   const itemsHistory = useMemo(() => {
-    // Item-wise history: show returned items (waiting TO verify / verified / damaged)
-    const itemDone = new Set(["RETURN_REQUESTED", "RETURN_VERIFIED", "DAMAGED_REPORTED"])
+    const historyStatuses = new Set([
+      "REJECTED_BY_LECTURER",
+      "RETURN_REQUESTED",
+      "RETURN_VERIFIED",
+      "DAMAGED_REPORTED",
+    ])
     const flat = []
 
     for (const r of rows || []) {
       const items = Array.isArray(r?.items) ? r.items : []
       for (const it of items) {
         const st = String(it?.itemStatus || "")
-        if (!itemDone.has(st)) continue
+        if (!historyStatuses.has(st)) continue
         flat.push({ ...r, _item: it, _itemStatus: st })
       }
     }
@@ -47,9 +51,10 @@ export default function InstructorHistory() {
 
   const statusText = (st) => {
     const s = String(st || "")
+    if (s === "REJECTED_BY_LECTURER") return "Rejected"
     if (s === "RETURN_REQUESTED") return "Waiting TO verify"
-    if (s === "RETURN_VERIFIED") return "Verified"
-    if (s === "DAMAGED_REPORTED") return "Damaged"
+    if (s === "RETURN_VERIFIED") return "Return verified"
+    if (s === "DAMAGED_REPORTED") return "Damage reported"
     return s || "-"
   }
 
@@ -92,7 +97,8 @@ export default function InstructorHistory() {
               <tr>
                 <th>Request_ID</th>
                 <th>Equipment</th>
-                <th>Returned_Date</th>
+                <th>Status</th>
+                <th>Date</th>
               </tr>
             </thead>
             <tbody>
@@ -100,14 +106,15 @@ export default function InstructorHistory() {
                 <tr key={`${r.requestId}-${r?._item?.requestItemId || "x"}`}>
                   <td style={{ textAlign: "center" }}>{r.requestId}</td>
                   <td>{renderEquipment(r)}</td>
-                  <td style={{ textAlign: "center" }}>{r.toDate || "-"}</td>
+                  <td style={{ textAlign: "center" }}>{statusText(r._itemStatus)}</td>
+                  <td style={{ textAlign: "center" }}>{r.toDate || r.fromDate || "-"}</td>
                 </tr>
               ))}
 
               {itemsHistory.length === 0 && !loading && (
                 <tr>
-                  <td colSpan="3" style={{ textAlign: "center" }}>
-                    No history
+                  <td colSpan="4" style={{ textAlign: "center" }}>
+                    No rejected or returned requests yet
                   </td>
                 </tr>
               )}

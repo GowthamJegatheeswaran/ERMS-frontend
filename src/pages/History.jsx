@@ -33,7 +33,9 @@ export default function History() {
 
   // Filter only returned/done items
   const history = useMemo(() => {
-    const doneStatuses = new Set(["RETURN_REQUESTED", "RETURN_VERIFIED", "DAMAGED_REPORTED"])
+    const doneStatuses = new Set(["REJECTED_BY_LECTURER",
+      "RETURN_VERIFIED",
+      "DAMAGED_REPORTED",])
     const flat = []
     for (const r of rows || []) {
       const items = Array.isArray(r?.items) ? r.items : []

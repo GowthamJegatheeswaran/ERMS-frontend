@@ -83,8 +83,6 @@ export const CommonAPI = {
   lecturers: (department) =>
     apiFetch(`/api/common/lecturers?department=${encodeURIComponent(department || "")}`),
 
-  // Optional endpoints (not present in current backend).
-  // If your backend team adds them later, frontend will automatically use them.
   labs: async (department) => {
     try {
       const qs = department ? `?department=${encodeURIComponent(department)}` : ""
@@ -171,7 +169,9 @@ export const AdminAPI = {
   updateUser: (id, payload) =>
     apiFetch(`/api/admin/users/${id}`, { method: "PUT", body: JSON.stringify(payload) }),
   deleteUser: (id) => apiFetch(`/api/admin/users/${id}`, { method: "DELETE" }),
+  disableUser: (id) => apiFetch(`/api/admin/users/${id}/disable`, { method: "POST" }),
 }
+
 
 // -------- HOD Department data --------
 // Flattened department requests list (used by HOD Report/Inspect/History)
