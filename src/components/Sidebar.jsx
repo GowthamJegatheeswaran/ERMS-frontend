@@ -34,8 +34,7 @@ export default function Sidebar({ isOpen, onClose }) {
 
     if (role === "hod") {
       return [
-        { label: "Dashboard", path: "/hod-dashboard" },
-        { label: "My Work", path: "/hod-my-work" },
+        { label: "Dashboard", path: "/hod-my-work" },
         { label: "Department Work", path: "/hod-dept-work" },
         { label: "Inventory", path: "/hod-inventory" },
         { label: "Report", path: "/hod-report" },
