@@ -1,55 +1,78 @@
-import "../styles/studentDashboard.css"
-import Sidebar from "../components/Sidebar"
-import Topbar from "../components/Topbar"
-import { useEffect, useMemo, useState } from "react"
-import { LecturerRequestAPI } from "../api/api"
+import "../styles/toDashboard.css";
+import Sidebar from "../components/Sidebar";
+import Topbar from "../components/Topbar";
+import { useEffect, useMemo, useState } from "react";
+import { LecturerRequestAPI } from "../api/api";
 
 export default function LecturerHistory() {
-  const [sidebarOpen, setSidebarOpen] = useState(false)
-  const [rows, setRows] = useState([])
-  const [loading, setLoading] = useState(false)
-  const [error, setError] = useState("")
+  const [sidebarOpen, setSidebarOpen] = useState(false);
+  const [requestRows, setRequestRows] = useState([]);
+  const [loading, setLoading] = useState(false);
+  const [error, setError] = useState("");
 
   const load = async () => {
-    setError("")
+    setError("");
     try {
-      setLoading(true)
-      const list = await LecturerRequestAPI.my()
-      setRows(Array.isArray(list) ? list : [])
+      setLoading(true);
+      const list = await LecturerRequestAPI.my();
+      setRequestRows(Array.isArray(list) ? list : []);
     } catch (e) {
-      setError(e?.message || "Failed to load lecturer history")
+      setError(e?.message || "Failed to load lecturer history");
     } finally {
-      setLoading(false)
+      setLoading(false);
     }
-  }
+  };
 
-  useEffect(() => {
-    load()
-    // eslint-disable-next-line react-hooks/exhaustive-deps
-  }, [])
+  useEffect(() => { load(); }, []);
 
-  const history = useMemo(() => {
-    const done = new Set(["RETURN_VERIFIED", "DAMAGED_REPORTED"])
-    const flat = []
-    for (const r of rows || []) {
-      for (const it of Array.isArray(r?.items) ? r.items : []) {
-        const st = String(it?.itemStatus || "")
-        if (!done.has(st)) continue
-        flat.push({ ...r, _item: it, _itemStatus: st })
+  const requesterText = (r) => r.requesterRegNo || r.requesterFullName || "-";
+
+  const statusColorMap = {
+    RETURN_VERIFIED: "#6B7280",
+    DAMAGED_REPORTED: "#DC2626",
+    default: "#2563EB",
+  };
+
+  // Flatten each request to individual items (cards)
+  const flatRequests = useMemo(() => {
+    const validStatuses = new Set(["RETURN_VERIFIED", "DAMAGED_REPORTED"]);
+    const out = [];
+    for (const r of requestRows || []) {
+      const items = Array.isArray(r.items) ? r.items : [];
+      for (const it of items) {
+        if (!validStatuses.has(it.itemStatus)) continue;
+        out.push({ ...r, _item: it, _itemStatus: it.itemStatus });
       }
     }
-    return flat.sort((a, b) => (b.requestId || 0) - (a.requestId || 0))
-  }, [rows])
+    return out.sort((a, b) => (b.requestId || 0) - (a.requestId || 0));
+  }, [requestRows]);
 
-  const renderItem = (r) => {
-    const it = r?._item
-    if (!it) return <span style={{ color: "#777" }}>—</span>
+  const renderRequestCard = (r) => {
+    const it = r._item;
+    const bgColor = statusColorMap[it.itemStatus] || statusColorMap.default;
+
     return (
-      <div>
-        {it.equipmentName || `Equipment #${it.equipmentId}`} × {it.quantity ?? "-"}
+      <div key={`${r.requestId}-${it.requestItemId}`} className="history-card">
+        <div className="history-grid">
+          <div className="history-left">
+            <div><strong>Request ID:</strong> {r.requestId}</div>
+            <div><strong>Requester:</strong> {requesterText(r)}</div>
+            <div><strong>Lab:</strong> {r.labName || "-"}</div>
+            <div><strong>Purpose:</strong> {r.purpose || "-"}</div>
+          </div>
+          <div className="history-right">
+            <div><strong>Item:</strong> {it.equipmentName || `Equipment #${it.equipmentId}`} × {it.quantity}</div>
+            <div>
+              <strong>Status:</strong>{" "}
+              <span className="status" style={{ backgroundColor: bgColor, color: "#fff" }}>
+                {it.itemStatus || "-"}
+              </span>
+            </div>
+          </div>
+        </div>
       </div>
-    )
-  }
+    );
+  };
 
   return (
     <div className="dashboard-container">
@@ -58,54 +81,12 @@ export default function LecturerHistory() {
         <Topbar onMenuClick={() => setSidebarOpen(true)} />
 
         <div className="content">
-          <div style={{ display: "flex", justifyContent: "space-between", alignItems: "center" }}>
-            <h2 style={{ marginBottom: 12 }}>My History</h2>
-            <button className="btn-submit" type="button" onClick={load} disabled={loading}>
-              {loading ? "Loading..." : "Refresh"}
-            </button>
-          </div>
+          {error && <div className="error-message">{error}</div>}
 
-          {error && <div className="error-message" style={{ color: "red", marginBottom: 10 }}>{error}</div>}
-
-          <table className="requests-table">
-            <thead>
-              <tr>
-                <th>Request_ID</th>
-                <th>Lab</th>
-                <th>Purpose</th>
-                <th>Items</th>
-                <th style={{ textAlign: "center" }}>Status</th>
-              </tr>
-            </thead>
-            <tbody>
-              {history.map((r) => (
-                <tr key={`${r.requestId}-${r?._item?.requestItemId || "x"}`}>
-                  <td style={{ textAlign: "center" }}>{r.requestId}</td>
-                  <td>{r.labName || "-"}</td>
-                  <td>{r.purpose || "-"}</td>
-                  <td>{renderItem(r)}</td>
-                  <td style={{ textAlign: "center" }}>
-                    <span className={`status ${String(r._itemStatus || "").toLowerCase()}`}>{r._itemStatus || "-"}</span>
-                  </td>
-                </tr>
-              ))}
-
-              {history.length === 0 && (
-                <tr>
-                  <td colSpan="5" style={{ textAlign: "center" }}>
-                    {loading ? "Loading..." : "No history"}
-                  </td>
-                </tr>
-              )}
-            </tbody>
-          </table>
+          <h3>My History</h3>
+          {flatRequests.length === 0 ? "No records" : flatRequests.map(renderRequestCard)}
         </div>
-
-        <footer>
-          Faculty of Engineering | University of Jaffna <br />
-          © Copyright 2026. All Rights Reserved - ERS
-        </footer>
       </div>
     </div>
-  )
+  );
 }
