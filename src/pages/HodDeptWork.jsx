@@ -1,15 +1,14 @@
-import "../styles/studentDashboard.css"
+import "../styles/hodDashboard.css"
 import Sidebar from "../components/Sidebar"
 import Topbar from "../components/Topbar"
 import { useEffect, useState } from "react"
 import { useNavigate } from "react-router-dom"
 import { HodPurchaseAPI } from "../api/api"
+import { FaBox, FaClipboardList, FaListAlt, FaSearch } from "react-icons/fa" // professional icons
 
-// HOD Department Work (welcome screen + quick actions)
 export default function HodDeptWork() {
   const navigate = useNavigate()
   const [sidebarOpen, setSidebarOpen] = useState(false)
-
   const [rows, setRows] = useState([])
   const [loading, setLoading] = useState(false)
 
@@ -19,7 +18,7 @@ export default function HodDeptWork() {
       const list = await HodPurchaseAPI.my()
       setRows(Array.isArray(list) ? list : [])
     } catch {
-      // ignore
+      // ignore errors
     } finally {
       setLoading(false)
     }
@@ -36,18 +35,29 @@ export default function HodDeptWork() {
         <Topbar onMenuClick={() => setSidebarOpen(true)} />
 
         <div className="content">
-          <h2 style={{ marginBottom: 12 }}>Welcome, NAME!</h2>
+          {/* Welcome Header */}
+          <h2 className="welcome-header">Welcome, NAME!</h2>
 
-          <h3 style={{ marginTop: 10 }}>Quick Actions</h3>
-          <div className="actions" style={{ display: "grid", gridTemplateColumns: "repeat(auto-fit, minmax(220px, 1fr))", gap: 14, maxWidth: 900 }}>
-            <button onClick={() => navigate("/hod-inventory")}>Inventory</button>
-            <button onClick={() => navigate("/hod-report")}>Report</button>
-            <button onClick={() => navigate("/hod-dept-purchase")}>Department Equipment Request</button>
-            <button onClick={() => navigate("/hod-inspect")}>Inspect Requests</button>
+          {/* Quick Actions */}
+          <h3 className="section-title">Quick Actions</h3>
+          <div className="actions-grid">
+            <button className="action-btn" onClick={() => navigate("/hod-inventory")}>
+              <FaBox className="icon" /> Inventory
+            </button>
+            <button className="action-btn" onClick={() => navigate("/hod-report")}>
+              <FaClipboardList className="icon" /> Report
+            </button>
+            <button className="action-btn" onClick={() => navigate("/hod-dept-purchase")}>
+              <FaListAlt className="icon" /> Department Equipment Request
+            </button>
+            <button className="action-btn" onClick={() => navigate("/hod-inspect")}>
+              <FaSearch className="icon" /> Inspect Requests
+            </button>
           </div>
 
-          <div style={{ display: "flex", justifyContent: "space-between", alignItems: "center", marginTop: 22 }}>
-            <h3 style={{ marginBottom: 10 }}>Recent Department Requests</h3>
+          {/* Recent Department Requests */}
+          <div className="requests-header">
+            <h3>Recent Department Requests</h3>
             <button className="btn-submit" type="button" onClick={load} disabled={loading}>
               {loading ? "Loading..." : "Refresh"}
             </button>
@@ -56,11 +66,11 @@ export default function HodDeptWork() {
           <table className="requests-table">
             <thead>
               <tr>
-                <th>Request_ID</th>
-                <th>Requested_By</th>
-                <th style={{ textAlign: "center" }}>Status</th>
-                <th style={{ textAlign: "center" }}>Due_Date</th>
-                <th style={{ textAlign: "center" }}>Actions</th>
+                <th>Request ID</th>
+                <th>Requested By</th>
+                <th>Status</th>
+                <th>Due Date</th>
+                <th>Actions</th>
               </tr>
             </thead>
             <tbody>
@@ -69,14 +79,21 @@ export default function HodDeptWork() {
                 .slice(0, 6)
                 .map((p) => (
                   <tr key={p.id}>
-                    <td style={{ textAlign: "center" }}>{p.id}</td>
-                    <td style={{ textAlign: "center" }}>{p.requestedByName || "-"}</td>
-                    <td style={{ textAlign: "center" }}>
-                      <span className={`status ${String(p.status || "").toLowerCase()}`}>{p.status || "-"}</span>
+                    <td>{p.id}</td>
+                    <td>{p.requestedByName || "-"}</td>
+                    <td>
+                      <span className={`status ${String(p.status || "").toLowerCase()}`}>
+                        {p.status || "-"}
+                      </span>
                     </td>
-                    <td style={{ textAlign: "center" }}>{p.createdDate || "-"}</td>
-                    <td style={{ textAlign: "center" }}>
-                      <button className="btn-submit" type="button" onClick={() => navigate("/hod-dept-purchase")}>View</button>
+                    <td>{p.createdDate || "-"}</td>
+                    <td>
+                      <button
+                        className="btn-view"
+                        onClick={() => navigate("/hod-dept-purchase")}
+                      >
+                        View
+                      </button>
                     </td>
                   </tr>
                 ))}
@@ -91,11 +108,6 @@ export default function HodDeptWork() {
             </tbody>
           </table>
         </div>
-
-        <footer>
-          Faculty of Engineering | University of Jaffna <br />
-          © Copyright 2026. All Rights Reserved - ERS
-        </footer>
       </div>
     </div>
   )
