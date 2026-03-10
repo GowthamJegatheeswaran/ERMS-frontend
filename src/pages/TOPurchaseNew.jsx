@@ -115,9 +115,9 @@ export default function TOPurchaseNew() {
             <div className="items-card">
               {items.map(it => (
                 <div key={it.equipmentId} className="item-row">
-                  <div>{it.equipment}</div>
+                  <div className="item-name">{it.equipment}</div>
                   <div>Qty: {it.quantity}</div>
-                  <button className="btn-cancel small" onClick={() => removeItem(it.equipmentId)}>Remove</button>
+                  <button className="btn-cancel" onClick={() => removeItem(it.equipmentId)}>Remove</button>
                 </div>
               ))}
             </div>
