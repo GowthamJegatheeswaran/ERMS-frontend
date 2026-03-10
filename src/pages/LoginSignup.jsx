@@ -54,6 +54,7 @@ export default function LoginSignup() {
 
       // Redirect based on role
       const redirectPaths = {
+        staff:"/instructor-dashboard",
         student: "/student-dashboard",
         lecturer: "/lecturer-dashboard",
         to: "/to-dashboard",

@@ -78,7 +78,7 @@ export default function Sidebar({ isOpen, onClose }) {
 
     if (role === "instructor" || role === "staff") {
       return [
-        { label: "Dashboard", path: "/student-dashboard", icon: <AiOutlineDashboard /> },
+        { label: "Dashboard", path: "/instructor-dashboard", icon: <AiOutlineDashboard /> },
         { label: "New Requests", path: "/instructor-new-request", icon: <AiOutlineShoppingCart /> },
         { label: "View Requests", path: "/instructor-view-requests", icon: <AiOutlineFileText /> },
         { label: "Help/Support", path: "/help", icon: <AiOutlineAppstore /> },
