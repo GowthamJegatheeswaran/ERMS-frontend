@@ -234,27 +234,43 @@
   flex: 1;
 }
 
+/* Card action buttons */
 .history-actions {
   display: flex;
-  gap: 12px;
+  gap: 8px;             /* horizontal spacing between buttons */
   margin-top: 12px;
-  flex-wrap: wrap;
+  flex-wrap: nowrap;     /* prevent wrapping to vertical */
 }
 
 .history-actions button.small {
-  flex: none;              /* remove flex-grow */
-  min-width: 100px;        /* smaller width */
-  padding: 6px 10px;       /* smaller padding */
-  font-size: 12px;         /* smaller font */
-  border-radius: 4px;      /* slightly smaller corners */
+  flex: none;            /* prevent buttons from stretching */
+  padding: 6px 12px;     /* adjust padding for card buttons */
+  font-size: 13px;
+  border-radius: 6px;    /* slightly rounded corners for card buttons */
+  display: inline-flex;
+  align-items: center;
+  gap: 4px;              /* space between icon and text */
+  cursor: pointer;
+  transition: all 0.2s ease;
+  border: 1px solid #1d4ed8; /* border matches sidebar color */
 }
 
+/* Primary action button like Issue / Verify OK */
 .btn-submit.small {
-  background: #2563eb;
-  color: white;
+  background-color: #2563eb; /* sidebar blue */
+  color: #fff;
 }
 
+.btn-submit.small:hover {
+  background-color: #1d4ed8; /* darker blue on hover */
+}
+
+/* Secondary action button like Wait / Mark Damaged */
 .btn-cancel.small {
-  background: #e5e7eb;
+  background-color: #e5e7eb; /* light gray */
   color: #111;
+}
+
+.btn-cancel.small:hover {
+  background-color: #d1d5db; /* slightly darker gray on hover */
 }
