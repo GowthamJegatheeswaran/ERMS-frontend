@@ -1,104 +1,90 @@
-import "../styles/studentDashboard.css"
-import Sidebar from "../components/Sidebar"
-import Topbar from "../components/Topbar"
-import { useEffect, useState } from "react"
-import { ToPurchaseAPI } from "../api/api"
+import "../styles/toDashboard.css";
+import Sidebar from "../components/Sidebar";
+import Topbar from "../components/Topbar";
+import { useEffect, useMemo, useState } from "react";
+import { ToRequestAPI } from "../api/api";
+import { AiOutlineCheck, AiOutlineClockCircle, AiOutlineClose } from "react-icons/ai";
 
-// TO Purchase List (table only)
-// Flow: TO Submit -> HOD Approve -> Admin Issue -> HOD Confirm Received (inventory update)
-export default function TOPurchase() {
-  const [sidebarOpen, setSidebarOpen] = useState(false)
-  const [rows, setRows] = useState([])
-  const [loading, setLoading] = useState(false)
-  const [error, setError] = useState("")
+export default function TOViewRequests() {
+  const [sidebarOpen, setSidebarOpen] = useState(false);
+  const [rows, setRows] = useState([]);
+  const [error, setError] = useState("");
 
   const load = async () => {
-    setError("")
+    setError("");
     try {
-      setLoading(true)
-      const list = await ToPurchaseAPI.my()
-      setRows(Array.isArray(list) ? list : [])
+      const list = await ToRequestAPI.all();
+      setRows(Array.isArray(list) ? list : []);
     } catch (e) {
-      setError(e?.message || "Failed to load")
-    } finally {
-      setLoading(false)
+      setError(e?.message || "Failed to load requests");
     }
-  }
+  };
 
-  useEffect(() => {
-    load()
-  }, [])
+  useEffect(() => { load(); }, []);
 
-  const fmt = (d) => (d ? String(d) : "-")
+  const sorted = useMemo(() => {
+    const out = [];
+    for (const r of rows || []) {
+      const items = Array.isArray(r?.items) ? r.items : [];
+      for (const it of items) {
+        out.push({ ...r, _item: it });
+      }
+    }
+    return out.sort((a, b) => (b.requestId || 0) - (a.requestId || 0));
+  }, [rows]);
+
+  const requesterText = r => r.requesterRegNo || r.requesterFullName || "-";
+
+  const statusColorMap = {
+    APPROVED_BY_LECTURER: "#16a34a",
+    TO_PROCESSING: "#f59e0b",
+    ISSUED_PENDING_STUDENT_ACCEPT: "#2563eb",
+    ISSUED_CONFIRMED: "#1e40af",
+    RETURNED_PENDING_TO_VERIFY: "#f97316",
+    RETURNED: "#6b7280",
+    REJECTED: "#dc2626",
+    default: "#6b7280"
+  };
+
+  const renderCard = r => {
+    const item = r._item;
+    const bgColor = statusColorMap[item.itemStatus] || statusColorMap.default;
+
+    return (
+      <div key={`${r.requestId}-${item.requestItemId}`} className="history-card">
+        <div className="history-grid">
+          <div className="history-left">
+            <div><strong>Request ID:</strong> {r.requestId}</div>
+            <div><strong>Requester:</strong> {requesterText(r)}</div>
+            <div><strong>Lab:</strong> {r.labName || "-"}</div>
+          </div>
+          <div className="history-right">
+            <div><strong>Item:</strong> {item.equipmentName || `Equipment #${item.equipmentId}`} × {item.quantity}</div>
+            <div><strong>From:</strong> {r.fromDate || "-"}</div>
+            <div><strong>To:</strong> {r.toDate || "-"}</div>
+            <div>
+              <strong>Status:</strong>{" "}
+              <span className="status" style={{ backgroundColor: bgColor, color: "#fff" }}>
+                {item.itemStatus || "-"}
+              </span>
+            </div>
+          </div>
+        </div>
+      </div>
+    );
+  };
 
   return (
     <div className="dashboard-container">
       <Sidebar isOpen={sidebarOpen} onClose={() => setSidebarOpen(false)} />
       <div className="main-content">
         <Topbar onMenuClick={() => setSidebarOpen(true)} />
-
         <div className="content">
-          <div style={{ display: "flex", justifyContent: "space-between", alignItems: "center" }}>
-            <h2 style={{ marginBottom: 12 }}>My Purchase Requests</h2>
-            <button className="btn-submit" type="button" onClick={load} disabled={loading}>
-              {loading ? "Loading..." : "Refresh"}
-            </button>
-          </div>
-
-          {error && (
-            <div className="error-message" style={{ color: "red", marginBottom: 10 }}>
-              {error}
-            </div>
-          )}
-
-          <table className="requests-table">
-            <thead>
-              <tr>
-                <th>Purchase_ID</th>
-                <th>Items</th>
-                <th style={{ textAlign: "center" }}>Status</th>
-                <th style={{ textAlign: "center" }}>Requested_Date</th>
-                <th style={{ textAlign: "center" }}>Received_Date</th>
-              </tr>
-            </thead>
-            <tbody>
-              {rows
-                .sort((a, b) => (b.id || 0) - (a.id || 0))
-                .map((p) => (
-                  <tr key={p.id}>
-                    <td style={{ textAlign: "center" }}>{p.id}</td>
-                    <td>
-                      {(p.items || []).map((it, idx) => (
-                        <div key={`${p.id}-${idx}`}>
-                          {it.equipmentName} × {(it.quantityRequested ?? it.quantity)}
-                        </div>
-                      ))}
-                      {(!p.items || p.items.length === 0) && "-"}
-                    </td>
-                    <td style={{ textAlign: "center" }}>
-                      <span className={`status ${String(p.status || "").toLowerCase()}`}>{p.status || "-"}</span>
-                    </td>
-                    <td style={{ textAlign: "center" }}>{fmt(p.createdDate)}</td>
-                    <td style={{ textAlign: "center" }}>{fmt(p.receivedDate)}</td>
-                  </tr>
-                ))}
-
-              {rows.length === 0 && !loading && (
-                <tr>
-                  <td colSpan="5" style={{ textAlign: "center" }}>
-                    No purchase requests yet
-                  </td>
-                </tr>
-              )}
-            </tbody>
-          </table>
+          {error && <div className="error-message">{error}</div>}
+          <h3>My Purchase Requests</h3>
+          {sorted.length === 0 ? <div>No requests found</div> : sorted.map(renderCard)}
         </div>
-
-        <footer>
-          Faculty of Engineering | University of Jaffna <br />
-          © Copyright 2026. All Rights Reserved - ERS
-        </footer>
       </div>
     </div>
-  )
+  );
 }
