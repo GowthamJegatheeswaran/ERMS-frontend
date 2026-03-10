@@ -48,7 +48,6 @@ export default function HodReport() {
     const pending = lastMonthReq.filter((r) => lower(r.status).includes("pending")).length
     const accepted = lastMonthReq.filter((r) => lower(r.status).includes("approved") || lower(r.status).includes("issued") || lower(r.status).includes("to_processing")).length
 
-    // Returned count from items
     let returned = 0
     let nonReturned = 0
     for (const r of lastMonthReq) {
@@ -82,10 +81,26 @@ export default function HodReport() {
         <Topbar onMenuClick={() => setSidebarOpen(true)} />
 
         <div className="content">
-          <div style={{ display: "flex", justifyContent: "space-between", alignItems: "center" }}>
-            <h2 style={{ marginBottom: 12 }}>Report</h2>
-            <button className="btn-submit" type="button" onClick={load} disabled={loading}>
-              {loading ? "Loading..." : "Refresh"}
+          <div style={{ display: "flex", alignItems: "center", gap: "10px" }}>
+            <h2>Report</h2>
+            <button
+              type="button"
+              onClick={load}
+              disabled={loading}
+              style={{
+                display: "flex",
+                alignItems: "center",
+                gap: "5px",
+                padding: "4px 10px",
+                fontSize: "12px",
+                backgroundColor: "#2f64d6",
+                color: "white",
+                border: "none",
+                borderRadius: "4px",
+                cursor: "pointer"
+              }}
+            >
+              🔄 {loading ? "Loading..." : "Refresh"}
             </button>
           </div>
 
@@ -110,7 +125,6 @@ export default function HodReport() {
             </tbody>
           </table>
 
-          {/* Charts: keeping lightweight (no chart lib). */}
           <div style={{ display: "flex", gap: 18, flexWrap: "wrap", justifyContent: "center", marginBottom: 18 }}>
             <div style={{ width: 260, height: 180, borderRadius: 10, background: "#f3f4f6", display: "flex", flexDirection: "column", justifyContent: "center", alignItems: "center" }}>
               <div style={{ fontWeight: 800, marginBottom: 8 }}>Requests</div>
@@ -128,9 +142,14 @@ export default function HodReport() {
 
           <div style={{ display: "flex", justifyContent: "center", flexWrap: "wrap", gap: 16 }}>
             {labs.map((l) => (
-              <button key={l.labId} onClick={() => navigate(`/hod-report-lab/${l.labId}`)} style={{ minWidth: 120 }}>
-                {l.labName}
-              </button>
+              <div key={l.labId} style={{ minWidth: 220, border: "1px solid #dbe3f0", borderRadius: 10, padding: 14, background: "#fff", boxShadow: "0 1px 6px rgba(0,0,0,0.05)" }}>
+                <div style={{ fontWeight: 700, fontSize: 16, marginBottom: 12, textAlign: "center" }}>{l.labName}</div>
+                <div style={{ display: "flex", gap: 10, justifyContent: "center", flexWrap: "wrap" }}>
+                  <button type="button" onClick={() => navigate(`/hod-report-lab/${l.labId}`)} style={{ minWidth: 90 }}>
+                    Open
+                  </button>
+                </div>
+              </div>
             ))}
             {labs.length === 0 && <div style={{ color: "#555" }}>No labs</div>}
           </div>
