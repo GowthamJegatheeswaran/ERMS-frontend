@@ -29,7 +29,7 @@ export default function LecturerHistory() {
   }, [])
 
   const history = useMemo(() => {
-    const done = new Set(["RETURN_REQUESTED", "RETURN_VERIFIED", "DAMAGED_REPORTED"])
+    const done = new Set(["RETURN_VERIFIED", "DAMAGED_REPORTED"])
     const flat = []
     for (const r of rows || []) {
       for (const it of Array.isArray(r?.items) ? r.items : []) {
