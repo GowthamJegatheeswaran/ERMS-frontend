@@ -235,6 +235,7 @@
 }
 
 /* Card action buttons */
+/* Card action buttons */
 .history-actions {
   display: flex;
   gap: 8px;             /* horizontal spacing between buttons */
