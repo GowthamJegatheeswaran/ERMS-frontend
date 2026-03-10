@@ -6,8 +6,8 @@ import { ToPurchaseAPI, ToRequestAPI } from "../api/api";
 
 export default function TOHistory() {
   const [sidebarOpen, setSidebarOpen] = useState(false);
-  const [rows, setRows] = useState([]);
   const [purchaseRows, setPurchaseRows] = useState([]);
+  const [requestRows, setRequestRows] = useState([]);
   const [loading, setLoading] = useState(false);
   const [error, setError] = useState("");
 
@@ -15,14 +15,14 @@ export default function TOHistory() {
     setError("");
     try {
       setLoading(true);
-      const [requestList, purchaseList] = await Promise.all([
-        ToRequestAPI.all(),
+      const [purchaseList, requestList] = await Promise.all([
         ToPurchaseAPI.my(),
+        ToRequestAPI.all(),
       ]);
-      setRows(Array.isArray(requestList) ? requestList : []);
       setPurchaseRows(Array.isArray(purchaseList) ? purchaseList : []);
+      setRequestRows(Array.isArray(requestList) ? requestList : []);
     } catch (e) {
-      setError(e?.message || "Failed to load TO history");
+      setError(e?.message || "Failed to load history");
     } finally {
       setLoading(false);
     }
@@ -30,45 +30,81 @@ export default function TOHistory() {
 
   useEffect(() => { load(); }, []);
 
-  // Flatten history but exclude RETURN_REQUESTED
-  const flatHistory = useMemo(() => {
-    const doneStatuses = new Set(["RETURN_VERIFIED", "DAMAGED_REPORTED"]);
+  const fmt = (d) => (d ? String(d) : "-");
+
+  // Flatten request rows to individual items, exclude RETURN_REQUESTED
+  const flatRequests = useMemo(() => {
+    const validStatuses = new Set(["RETURN_VERIFIED", "DAMAGED_REPORTED"]);
     const out = [];
-    for (const r of rows || []) {
-      const items = Array.isArray(r?.items) ? r.items : [];
+    for (const r of requestRows || []) {
+      const items = Array.isArray(r.items) ? r.items : [];
       for (const it of items) {
-        if (!doneStatuses.has(String(it?.itemStatus || ""))) continue;
+        if (!validStatuses.has(it.itemStatus)) continue;
         out.push({ ...r, _item: it, _itemStatus: it.itemStatus });
       }
     }
     return out.sort((a, b) => (b.requestId || 0) - (a.requestId || 0));
-  }, [rows]);
+  }, [requestRows]);
 
   const historyStudentInstructor = useMemo(
-    () => flatHistory.filter(r => ["STUDENT", "INSTRUCTOR", "STAFF"].includes((r.requesterRole || "").toUpperCase())),
-    [flatHistory]
+    () => flatRequests.filter(r => ["STUDENT", "INSTRUCTOR", "STAFF"].includes((r.requesterRole || "").toUpperCase())),
+    [flatRequests]
   );
 
   const historyLecturer = useMemo(
-    () => flatHistory.filter(r => (r.requesterRole || "").toUpperCase() === "LECTURER"),
-    [flatHistory]
+    () => flatRequests.filter(r => (r.requesterRole || "").toUpperCase() === "LECTURER"),
+    [flatRequests]
   );
 
-  const sortedPurchases = useMemo(() => [...purchaseRows].sort((a, b) => (b.id || 0) - (a.id || 0)), [purchaseRows]);
-
-  const requesterText = r => r.requesterRegNo || r.requesterFullName || "-";
+  const requesterText = (r) => r.requesterRegNo || r.requesterFullName || "-";
 
   const statusColorMap = {
+    SUBMITTED_TO_HOD: "#2563eb",
+    APPROVED: "#16a34a",
+    REJECTED: "#dc2626",
+    ISSUED: "#1e40af",
+    ACCEPTED: "#6b7280",
     RETURN_VERIFIED: "#6b7280",
     DAMAGED_REPORTED: "#dc2626",
-    default: "#2563eb",
+    default: "#6b7280",
   };
 
-  const renderHistoryCard = r => {
-    const item = r._item;
-    const bgColor = statusColorMap[item.itemStatus] || statusColorMap.default;
+  const renderPurchaseCard = (p) => {
+    const items = Array.isArray(p.items) ? p.items : [];
+    const bgColor = statusColorMap[p.status] || statusColorMap.default;
+
     return (
-      <div key={`${r.requestId}-${item.requestItemId}`} className="history-card">
+      <div key={p.id} className="history-card">
+        <div className="history-grid">
+          <div className="history-left">
+            <div><strong>Purchase ID:</strong> {p.id}</div>
+            <div><strong>Requested Date:</strong> {fmt(p.createdDate)}</div>
+            <div><strong>Received Date:</strong> {fmt(p.receivedDate)}</div>
+          </div>
+          <div className="history-right">
+            {items.map((it, idx) => (
+              <div key={`${p.id}-${idx}`}>
+                <strong>Item:</strong> {it.equipmentName} × {(it.quantityRequested ?? it.quantity)}
+              </div>
+            ))}
+            <div>
+              <strong>Status:</strong>{" "}
+              <span className="status" style={{ backgroundColor: bgColor, color: "#fff" }}>
+                {p.status || "-"}
+              </span>
+            </div>
+          </div>
+        </div>
+      </div>
+    );
+  };
+
+  const renderRequestCard = (r) => {
+    const it = r._item;
+    const bgColor = statusColorMap[it.itemStatus] || statusColorMap.default;
+
+    return (
+      <div key={`${r.requestId}-${it.requestItemId}`} className="history-card">
         <div className="history-grid">
           <div className="history-left">
             <div><strong>Request ID:</strong> {r.requestId}</div>
@@ -79,11 +115,11 @@ export default function TOHistory() {
           <div className="history-right">
             <div><strong>Role:</strong> {r.requesterRole || "-"}</div>
             <div><strong>Lab:</strong> {r.labName || "-"}</div>
-            <div><strong>Item:</strong> {item.equipmentName || `Equipment #${item.equipmentId}`} × {item.quantity}</div>
+            <div><strong>Item:</strong> {it.equipmentName || `Equipment #${it.equipmentId}`} × {it.quantity}</div>
             <div>
               <strong>Status:</strong>{" "}
               <span className="status" style={{ backgroundColor: bgColor, color: "#fff" }}>
-                {item.itemStatus || "-"}
+                {it.itemStatus || "-"}
               </span>
             </div>
           </div>
@@ -92,47 +128,23 @@ export default function TOHistory() {
     );
   };
 
-  const renderPurchaseCard = p => (
-    <div key={p.id} className="history-card">
-      <div className="history-grid">
-        <div className="history-left">
-          <div><strong>Purchase ID:</strong> {p.id}</div>
-          <div><strong>Requested Date:</strong> {p.createdDate || "-"}</div>
-          <div><strong>Received Date:</strong> {p.receivedDate || "-"}</div>
-        </div>
-        <div className="history-right">
-          {p.items?.map((it, idx) => (
-            <div key={`${p.id}-${idx}`}>
-              <strong>Item:</strong> {it.equipmentName} × {(it.quantityRequested ?? it.quantity)}
-            </div>
-          ))}
-          <div>
-            <strong>Status:</strong>{" "}
-            <span className="status" style={{ backgroundColor: "#1d4ed8", color: "#fff" }}>
-              {p.status || "-"}
-            </span>
-          </div>
-        </div>
-      </div>
-    </div>
-  );
-
   return (
     <div className="dashboard-container">
       <Sidebar isOpen={sidebarOpen} onClose={() => setSidebarOpen(false)} />
       <div className="main-content">
         <Topbar onMenuClick={() => setSidebarOpen(true)} />
+
         <div className="content">
           {error && <div className="error-message">{error}</div>}
 
           <h3>Purchase List</h3>
-          {sortedPurchases.length === 0 ? "No purchase records" : sortedPurchases.map(renderPurchaseCard)}
+          {purchaseRows.length === 0 ? "No purchase records" : purchaseRows.map(renderPurchaseCard)}
 
-          <h3 style={{ marginTop: 20 }}>Student/Instructor History</h3>
-          {historyStudentInstructor.length === 0 ? "No returned records" : historyStudentInstructor.map(renderHistoryCard)}
+          <h3>Student/Instructor History</h3>
+          {historyStudentInstructor.length === 0 ? "No returned records" : historyStudentInstructor.map(renderRequestCard)}
 
-          <h3 style={{ marginTop: 20 }}>Lecturer History</h3>
-          {historyLecturer.length === 0 ? "No lecturer records" : historyLecturer.map(renderHistoryCard)}
+          <h3>Lecturer History</h3>
+          {historyLecturer.length === 0 ? "No lecturer records" : historyLecturer.map(renderRequestCard)}
         </div>
       </div>
     </div>
