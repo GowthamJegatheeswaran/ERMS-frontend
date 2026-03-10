@@ -58,9 +58,6 @@ export default function TOPurchase() {
         <div className="content">
           <div style={{ display: "flex", justifyContent: "space-between", alignItems: "center" }}>
             <h2 style={{ marginBottom: 12 }}>My Purchase Requests</h2>
-            <button className="btn-primary" onClick={load} disabled={loading}>
-              {loading ? "Loading..." : "Refresh"}
-            </button>
           </div>
 
           {error && <div className="error-message">{error}</div>}
