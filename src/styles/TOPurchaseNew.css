@@ -120,14 +120,15 @@ select, input {
 .item-row .btn-cancel {
   background: #dc2626;      /* red color */
   color: #fff;
-  padding: 4px 10px;        /* vertical + horizontal padding */
-  border-radius: 4px;
+  padding: 8px 16px;        /* same padding as submit button */
+  border-radius: 6px;       /* match submit button */
   border: none;
   cursor: pointer;
-  font-size: 0.85rem;
-  display: inline-block;    /* prevent full-width stretching */
-  min-width: 60px;          /* optional: ensure consistent button size */
-  text-align: center;       /* center the text */
+  font-weight: 600;
+  font-size: 0.95rem;       /* same as submit */
+  display: inline-block;    /* prevents stretching */
+  min-width: 100px;         /* optional: match width of submit */
+  text-align: center;
 }
 
 .item-row .btn-cancel:hover {
