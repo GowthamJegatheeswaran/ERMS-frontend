@@ -307,3 +307,205 @@
 
 .inventory-avail.ok  { background: #dcfce7; color: #15803d; }
 .inventory-avail.low { background: #fee2e2; color: #dc2626; }
+
+/* =====================
+   HOD DEPT PURCHASE
+   ===================== */
+
+.dept-purchase-header {
+  display: flex;
+  justify-content: space-between;
+  align-items: flex-start;
+  flex-wrap: wrap;
+  gap: 16px;
+  margin-bottom: 24px;
+}
+
+.dept-purchase-flow {
+  font-size: 13px;
+  color: #6b7280;
+  margin: 0;
+}
+
+.dept-purchase-counts {
+  display: flex;
+  gap: 12px;
+}
+
+.dept-count-badge {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  padding: 10px 20px;
+  border-radius: 10px;
+  min-width: 80px;
+}
+
+.dept-count-badge span {
+  font-size: 22px;
+  font-weight: 700;
+  line-height: 1;
+}
+
+.dept-count-badge label {
+  font-size: 11px;
+  font-weight: 500;
+  margin-top: 4px;
+  text-transform: uppercase;
+  letter-spacing: 0.5px;
+}
+
+.pending-count { background: #fef3c7; color: #92400e; }
+.issued-count  { background: #dbeafe; color: #1e40af; }
+
+.dept-section-title {
+  font-size: 17px;
+  font-weight: 600;
+  color: #111827;
+  margin-bottom: 14px;
+  padding-bottom: 8px;
+  border-bottom: 2px solid #e5e7eb;
+}
+
+.dept-loading {
+  text-align: center;
+  color: #6b7280;
+  padding: 24px 0;
+  font-size: 14px;
+}
+
+.dept-empty {
+  text-align: center;
+  color: #9ca3af;
+  background: #f9fafb;
+  border: 1px dashed #e5e7eb;
+  border-radius: 10px;
+  padding: 24px;
+  font-size: 14px;
+  margin-bottom: 16px;
+}
+
+/* Purchase Card */
+.dept-card {
+  background: #ffffff;
+  border-radius: 12px;
+  border: 1px solid #e5e7eb;
+  box-shadow: 0 2px 8px rgba(0, 0, 0, 0.06);
+  margin-bottom: 16px;
+  overflow: hidden;
+}
+
+.dept-card.issued {
+  border-left: 4px solid #2563eb;
+}
+
+.dept-card-grid {
+  display: grid;
+  grid-template-columns: 1fr 1fr auto;
+  gap: 20px;
+  padding: 18px 20px;
+  align-items: start;
+}
+
+.dept-card-left,
+.dept-card-right {
+  display: flex;
+  flex-direction: column;
+  gap: 6px;
+  font-size: 14px;
+  color: #374151;
+}
+
+.dept-card-left strong,
+.dept-card-right strong {
+  color: #111827;
+}
+
+.dept-card-items-label {
+  font-size: 12px;
+  font-weight: 600;
+  color: #6b7280;
+  text-transform: uppercase;
+  letter-spacing: 0.5px;
+  margin-bottom: 4px;
+}
+
+.dept-card-item {
+  display: flex;
+  align-items: center;
+  gap: 7px;
+  font-size: 14px;
+  color: #374151;
+}
+
+.dept-item-dot {
+  width: 6px;
+  height: 6px;
+  border-radius: 50%;
+  background: #2563eb;
+  flex-shrink: 0;
+}
+
+.dept-card-no-items {
+  font-size: 13px;
+  color: #9ca3af;
+}
+
+.dept-card-status-col {
+  display: flex;
+  align-items: flex-start;
+  padding-top: 2px;
+}
+
+/* Card Action Row */
+.dept-card-actions {
+  display: flex;
+  gap: 10px;
+  padding: 12px 20px;
+  background: #f9fafb;
+  border-top: 1px solid #f1f5f9;
+}
+
+.dept-btn-approve,
+.dept-btn-reject,
+.dept-btn-confirm {
+  display: inline-flex;
+  align-items: center;
+  gap: 6px;
+  padding: 8px 18px;
+  border-radius: 7px;
+  border: none;
+  font-size: 14px;
+  font-weight: 600;
+  cursor: pointer;
+  transition: all 0.2s ease;
+}
+
+.dept-btn-approve {
+  background: #16a34a;
+  color: #fff;
+}
+.dept-btn-approve:hover { background: #15803d; }
+
+.dept-btn-reject {
+  background: #f3f4f6;
+  color: #374151;
+  border: 1px solid #d1d5db;
+}
+.dept-btn-reject:hover { background: #fee2e2; color: #dc2626; border-color: #fca5a5; }
+
+.dept-btn-confirm {
+  background: #2563eb;
+  color: #fff;
+}
+.dept-btn-confirm:hover { background: #1d4ed8; }
+
+.dept-btn-approve:disabled,
+.dept-btn-reject:disabled,
+.dept-btn-confirm:disabled {
+  opacity: 0.5;
+  cursor: not-allowed;
+}
+
+/* Extra status for issued_by_admin */
+.status.issued_by_admin { background-color: #2563eb; }

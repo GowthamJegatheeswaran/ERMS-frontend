@@ -1,13 +1,12 @@
-import "../styles/studentDashboard.css"
+import "../styles/hodDashboard.css"
 import Sidebar from "../components/Sidebar"
 import Topbar from "../components/Topbar"
 import { useEffect, useMemo, useState } from "react"
 import { HodPurchaseAPI } from "../api/api"
+import { AiOutlineCheck, AiOutlineClose, AiOutlineInbox } from "react-icons/ai"
 
-// HOD: Department Equipment Requests (approval for TO purchase requests)
 export default function HodDeptPurchase() {
   const [sidebarOpen, setSidebarOpen] = useState(false)
-
   const [rows, setRows] = useState([])
   const [issuedRows, setIssuedRows] = useState([])
   const [loading, setLoading] = useState(false)
@@ -28,9 +27,7 @@ export default function HodDeptPurchase() {
     }
   }
 
-  useEffect(() => {
-    load()
-  }, [])
+  useEffect(() => { load() }, [])
 
   const decide = async (id, approve) => {
     setError("")
@@ -45,7 +42,6 @@ export default function HodDeptPurchase() {
     }
   }
 
-  
   const receive = async (id) => {
     setError("")
     try {
@@ -58,9 +54,9 @@ export default function HodDeptPurchase() {
       setLoading(false)
     }
   }
-const sorted = useMemo(() => {
-    return [...rows].sort((a, b) => (b.id || 0) - (a.id || 0))
-  }, [rows])
+
+  const sorted = useMemo(() => [...rows].sort((a, b) => (b.id || 0) - (a.id || 0)), [rows])
+  const sortedIssued = useMemo(() => [...issuedRows].sort((a, b) => (b.id || 0) - (a.id || 0)), [issuedRows])
 
   return (
     <div className="dashboard-container">
@@ -69,123 +65,136 @@ const sorted = useMemo(() => {
         <Topbar onMenuClick={() => setSidebarOpen(true)} />
 
         <div className="content">
-          <div style={{ display: "flex", justifyContent: "space-between", alignItems: "center" }}>
-            <h2 style={{ marginBottom: 12 }}>Department Equipment Request</h2>
-            <button className="btn-submit" type="button" onClick={load} disabled={loading}>
-              {loading ? "Loading..." : "Refresh"}
-            </button>
-          </div>
 
-          <div style={{ color: "#555", marginBottom: 10 }}>
-            Flow: TO Request → <b>HOD Approve</b> → Admin Issue/Reject → <b>HOD Confirm Received</b> (inventory update)
-          </div>
-
-          {error && <div className="error-message" style={{ color: "red", marginBottom: 10 }}>{error}</div>}
-
-          <table className="requests-table">
-            <thead>
-              <tr>
-                <th>Request_ID</th>
-                <th>TO_Name</th>
-                <th>Items</th>
-                <th style={{ textAlign: "center" }}>Requested_Date</th>
-                <th style={{ textAlign: "center" }}>Status</th>
-                <th style={{ textAlign: "center" }}>Actions</th>
-              </tr>
-            </thead>
-            <tbody>
-              {sorted.map((p) => (
-                <tr key={p.id}>
-                  <td style={{ textAlign: "center" }}>{p.id}</td>
-                  <td style={{ textAlign: "center" }}>{p.toName || "-"}</td>
-                  <td>
-                    {(p.items || []).map((it, idx) => (
-                      <div key={`${p.id}-${idx}`}>{it.equipmentName} × {it.quantityRequested}</div>
-                    ))}
-                    {(!p.items || p.items.length === 0) && "-"}
-                  </td>
-                  <td style={{ textAlign: "center" }}>{p.createdDate || "-"}</td>
-                  <td style={{ textAlign: "center" }}>
-                    <span className={`status ${String(p.status || "").toLowerCase()}`}>{p.status || "-"}</span>
-                  </td>
-                  <td style={{ textAlign: "center" }}>
-                    <button className="btn-submit" type="button" onClick={() => decide(p.id, true)} style={{ marginRight: 8 }} disabled={loading}>
-                      Accept
-                    </button>
-                    <button className="btn-cancel" type="button" onClick={() => decide(p.id, false)} disabled={loading}>
-                      Reject
-                    </button>
-                  </td>
-                </tr>
-              ))}
-
-              {sorted.length === 0 && !loading && (
-                <tr>
-                  <td colSpan="6" style={{ textAlign: "center" }}>
-                    No pending requests
-                  </td>
-                </tr>
-              )}
-            </tbody>
-          </table>
-        </div>
-
-          <div style={{ marginTop: 28 }}>
-            <h2 style={{ marginBottom: 12 }}>Issued Purchases (Confirm Received)</h2>
-            <div style={{ color: "#555", marginBottom: 10 }}>
-              When Admin issues a purchase (Given Date), confirm here after items arrive. This updates inventory.
+          {/* Page Header */}
+          <div className="dept-purchase-header">
+            <div>
+              <h2 className="welcome" style={{ marginBottom: 4 }}>Department Equipment Requests</h2>
+              <p className="dept-purchase-flow">
+                TO Request &rarr; <strong>HOD Approve</strong> &rarr; Admin Issue &rarr; <strong>HOD Confirm Received</strong>
+              </p>
             </div>
-
-            <table className="requests-table">
-              <thead>
-                <tr>
-                  <th>Purchase_ID</th>
-                  <th>TO_Name</th>
-                  <th>Items</th>
-                  <th style={{ textAlign: "center" }}>Requested_Date</th>
-                  <th style={{ textAlign: "center" }}>Given_Date</th>
-                  <th style={{ textAlign: "center" }}>Action</th>
-                </tr>
-              </thead>
-              <tbody>
-                {issuedRows
-                  .sort((a, b) => (b.id || 0) - (a.id || 0))
-                  .map((p) => (
-                    <tr key={`issued-${p.id}`}>
-                      <td style={{ textAlign: "center" }}>{p.id}</td>
-                      <td>{p.requestedByName || "-"}</td>
-                      <td>
-                        {(p.items || []).map((it, idx) => (
-                          <div key={`${p.id}-it-${idx}`}>{it.equipmentName} × {(it.quantityRequested ?? it.quantity)}</div>
-                        ))}
-                        {(!p.items || p.items.length === 0) && "-"}
-                      </td>
-                      <td style={{ textAlign: "center" }}>{p.createdDate || "-"}</td>
-                      <td style={{ textAlign: "center" }}>{p.issuedDate || "-"}</td>
-                      <td style={{ textAlign: "center" }}>
-                        <button className="btn-approve" type="button" onClick={() => receive(p.id)} disabled={loading}>
-                          Confirm Received
-                        </button>
-                      </td>
-                    </tr>
-                  ))}
-
-                {issuedRows.length === 0 && !loading && (
-                  <tr>
-                    <td colSpan="6" style={{ textAlign: "center" }}>
-                      No issued purchases yet
-                    </td>
-                  </tr>
-                )}
-              </tbody>
-            </table>
+            <div className="dept-purchase-counts">
+              <div className="dept-count-badge pending-count">
+                <span>{sorted.length}</span>
+                <label>Pending</label>
+              </div>
+              <div className="dept-count-badge issued-count">
+                <span>{sortedIssued.length}</span>
+                <label>To Receive</label>
+              </div>
+            </div>
           </div>
 
+          {error && <div className="error-message" style={{ color: "red", marginBottom: 12 }}>{error}</div>}
 
-        <footer>
-          Faculty of Engineering | University of Jaffna <br />
-          © Copyright 2026. All Rights Reserved - ERS
-        </footer>
+          {/* ── SECTION 1: Pending Approval ── */}
+          <h3 className="dept-section-title">Pending Approval</h3>
+
+          {loading && <div className="dept-loading">Loading...</div>}
+
+          {!loading && sorted.length === 0 && (
+            <div className="dept-empty">No pending requests</div>
+          )}
+
+          {!loading && sorted.map((p) => (
+            <div key={p.id} className="dept-card">
+              <div className="dept-card-grid">
+                <div className="dept-card-left">
+                  <div><strong>Request ID:</strong> #{p.id}</div>
+                  <div><strong>Requested By:</strong> {p.toName || "-"}</div>
+                  <div><strong>Date:</strong> {p.createdDate || "-"}</div>
+                </div>
+                <div className="dept-card-right">
+                  <div className="dept-card-items-label">Items</div>
+                  {(p.items || []).length === 0 ? (
+                    <div className="dept-card-no-items">No items</div>
+                  ) : (
+                    (p.items || []).map((it, idx) => (
+                      <div key={idx} className="dept-card-item">
+                        <span className="dept-item-dot" />
+                        {it.equipmentName} &times; {it.quantityRequested}
+                      </div>
+                    ))
+                  )}
+                </div>
+                <div className="dept-card-status-col">
+                  <span className={`status ${String(p.status || "").toLowerCase()}`}>
+                    {p.status || "-"}
+                  </span>
+                </div>
+              </div>
+              <div className="dept-card-actions">
+                <button
+                  className="dept-btn-approve"
+                  type="button"
+                  onClick={() => decide(p.id, true)}
+                  disabled={loading}
+                >
+                  <AiOutlineCheck size={15} /> Approve
+                </button>
+                <button
+                  className="dept-btn-reject"
+                  type="button"
+                  onClick={() => decide(p.id, false)}
+                  disabled={loading}
+                >
+                  <AiOutlineClose size={15} /> Reject
+                </button>
+              </div>
+            </div>
+          ))}
+
+          {/* ── SECTION 2: Issued — Confirm Received ── */}
+          <h3 className="dept-section-title" style={{ marginTop: 36 }}>Issued — Confirm Received</h3>
+          <p className="dept-purchase-flow" style={{ marginBottom: 16 }}>
+            Admin has issued these purchases. Confirm receipt to update inventory.
+          </p>
+
+          {!loading && sortedIssued.length === 0 && (
+            <div className="dept-empty">No issued purchases awaiting confirmation</div>
+          )}
+
+          {!loading && sortedIssued.map((p) => (
+            <div key={`issued-${p.id}`} className="dept-card issued">
+              <div className="dept-card-grid">
+                <div className="dept-card-left">
+                  <div><strong>Purchase ID:</strong> #{p.id}</div>
+                  <div><strong>Requested By:</strong> {p.requestedByName || "-"}</div>
+                  <div><strong>Requested:</strong> {p.createdDate || "-"}</div>
+                  <div><strong>Issued Date:</strong> {p.issuedDate || "-"}</div>
+                </div>
+                <div className="dept-card-right">
+                  <div className="dept-card-items-label">Items</div>
+                  {(p.items || []).length === 0 ? (
+                    <div className="dept-card-no-items">No items</div>
+                  ) : (
+                    (p.items || []).map((it, idx) => (
+                      <div key={idx} className="dept-card-item">
+                        <span className="dept-item-dot" />
+                        {it.equipmentName} &times; {it.quantityRequested ?? it.quantity}
+                      </div>
+                    ))
+                  )}
+                </div>
+                <div className="dept-card-status-col">
+                  <span className="status issued_by_admin">ISSUED_BY_ADMIN</span>
+                </div>
+              </div>
+              <div className="dept-card-actions">
+                <button
+                  className="dept-btn-confirm"
+                  type="button"
+                  onClick={() => receive(p.id)}
+                  disabled={loading}
+                >
+                  <AiOutlineInbox size={15} /> Confirm Received
+                </button>
+              </div>
+            </div>
+          ))}
+
+        </div>
       </div>
     </div>
   )
