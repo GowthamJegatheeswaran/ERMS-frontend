@@ -351,3 +351,44 @@ body {
 .empty-block { padding: 60px 20px; text-align: center; }
 .empty-icon  { font-size: 38px; margin-bottom: 10px; opacity: .4; }
 .empty-text  { font-size: 14px; color: var(--text-muted); }
+/* ================================================================
+   WELCOME BANNER — added for HOD dashboard
+   ================================================================ */
+.hod-welcome-banner {
+  background: linear-gradient(135deg, #0f172a 0%, #1e293b 55%, #1a3a2a 100%);
+  border-radius: var(--radius, 12px);
+  padding: 22px 28px;
+  margin-bottom: 24px;
+  position: relative;
+  overflow: hidden;
+}
+.hod-welcome-banner::before {
+  content: '';
+  position: absolute; top: -40px; right: -40px;
+  width: 180px; height: 180px; border-radius: 50%;
+  background: rgba(22, 163, 74, 0.18);
+}
+.hod-welcome-banner::after {
+  content: '';
+  position: absolute; bottom: -20px; right: 100px;
+  width: 110px; height: 110px; border-radius: 50%;
+  background: rgba(22, 163, 74, 0.10);
+}
+.hod-welcome-name {
+  font-size: 20px; font-weight: 800; color: #ffffff;
+  margin-bottom: 4px; position: relative; z-index: 1;
+  font-family: 'Plus Jakarta Sans', system-ui, sans-serif;
+}
+.hod-welcome-sub {
+  font-size: 13px; color: rgba(255,255,255,0.65); font-weight: 400;
+  position: relative; z-index: 1;
+  font-family: 'Plus Jakarta Sans', system-ui, sans-serif;
+}
+.hod-welcome-badge {
+  display: inline-flex; align-items: center; gap: 5px;
+  background: rgba(22, 163, 74, 0.30); color: #bbf7d0;
+  border: 1px solid rgba(187, 247, 208, 0.40); border-radius: 20px;
+  padding: 3px 10px; font-size: 11px; font-weight: 700;
+  margin-top: 8px; position: relative; z-index: 1;
+  font-family: 'Plus Jakarta Sans', system-ui, sans-serif;
+}
