@@ -177,7 +177,7 @@ export default function HodDeptPurchase() {
             </div>
             <div style={{ display: "flex", gap: 8, alignItems: "center", flexWrap: "wrap" }}>
               <span className="sp sp-amber">{sorted.length} Pending</span>
-              <span className="sp sp-blue">{sortedIssued.length} To Receive</span>
+              <span className="sp sp-blue">{sortedIssued.length} Awaiting Receipt</span>
             </div>
           </div>
 
@@ -190,7 +190,7 @@ export default function HodDeptPurchase() {
               <div className="stat-value">{sorted.length}</div>
             </div>
             <div className="stat-card blue">
-              <div className="stat-label">Issued — To Receive</div>
+              <div className="stat-label">Awaiting Your Receipt</div>
               <div className="stat-value">{sortedIssued.length}</div>
             </div>
             <div className="stat-card green">
