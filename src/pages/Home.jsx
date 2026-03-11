@@ -51,7 +51,7 @@ export default function Home() {
   const navigate = useNavigate();
 
   return (
-    <>
+    <div className="home-page">
       <Navbar onFeedback={() => setShowFeedback(true)} />
 
       {/* ── Hero ── */}
@@ -270,6 +270,6 @@ export default function Home() {
       </footer>
 
       {showFeedback && <FeedbackModal onClose={() => setShowFeedback(false)} />}
-    </>
+    </div>
   );
 }

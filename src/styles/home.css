@@ -29,14 +29,27 @@
 
 *, *::before, *::after { box-sizing: border-box; margin: 0; padding: 0; }
 
-html { scroll-behavior: smooth; }
+html {
+  scroll-behavior: smooth;
+  background: #050e24 !important;
+}
 
-body {
+/* Force dark background — overrides Vite defaults and any index.css resets */
+body,
+#root,
+#root > * {
   font-family: 'Outfit', system-ui, sans-serif;
-  background: var(--navy);
-  color: var(--text-body);
+  background: #050e24;
+  color: #e2e8f0;
   line-height: 1.6;
   overflow-x: hidden;
+}
+
+/* Home page wrapper — belt + suspenders on the background */
+.home-page {
+  background: #050e24 !important;
+  min-height: 100vh;
+  color: #e2e8f0;
 }
 
 /* ================================================================
@@ -47,7 +60,8 @@ body {
   position: sticky;
   top: 0;
   z-index: 1000;
-  background: rgba(5, 14, 36, 0.92);
+  background: #050e24;
+  background: rgba(5, 14, 36, 0.96);
   backdrop-filter: blur(18px);
   -webkit-backdrop-filter: blur(18px);
   border-bottom: 1px solid var(--border);
@@ -178,8 +192,8 @@ body {
   justify-content: center;
   overflow: hidden;
   padding: 120px 60px 80px;
+  background: #050e24;  /* explicit fallback — never goes light */
 }
-
 /* layered background */
 .hero::before {
   content: '';
