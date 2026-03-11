@@ -216,6 +216,9 @@ export const AdminAPI = {
 
   // POST /api/admin/users/{id}/disable
   disableUser: (id) => apiFetch(`/api/admin/users/${id}/disable`, { method: "POST" }),
+
+  // POST /api/admin/users/{id}/enable — re-activates a disabled user
+  enableUser: (id) => apiFetch(`/api/admin/users/${id}/enable`, { method: "POST" }),
 }
 
 // ── HOD Department ────────────────────────────────────────────────────────────

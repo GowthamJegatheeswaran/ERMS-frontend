@@ -5,47 +5,45 @@ import Topbar from "../components/Topbar"
 import { useEffect, useMemo, useState } from "react"
 import { AdminAPI } from "../api/api"
 import {
-  AiOutlineUser, AiOutlineUserAdd, AiOutlineUserDelete,
+  AiOutlineUserAdd, AiOutlineUserDelete,
   AiOutlineStop, AiOutlineCheckCircle, AiOutlineEdit,
-  AiOutlineWarning, AiOutlineClose
+  AiOutlineClose, AiOutlineWarning
 } from "react-icons/ai"
-import { FaUserShield, FaUserCog, FaChalkboardTeacher, FaUserTie, FaUserGraduate } from "react-icons/fa"
-import { FaSearch } from "react-icons/fa"
+import { FaUserShield, FaUserCog, FaChalkboardTeacher, FaUserTie, FaUserGraduate, FaSearch } from "react-icons/fa"
 
 /* ── Validation ── */
-const emailOk  = v => /\S+@\S+\.\S+/.test((v || "").trim())
-const strongPwd = v => /^(?=.*[a-z])(?=.*[A-Z])(?=.*\d)(?=.*[@$!%*?&])[A-Za-z\d@$!%*?&]{8,}$/.test(v || "")
+const emailOk = v => /\S+@\S+\.\S+/.test((v || "").trim())
 
 /* ── Role config ── */
 const ROLE_CONFIG = [
-  { key: "hod",      label: "HOD",               icon: <FaUserShield />,       color: "#2563eb", note: "One HOD per department" },
-  { key: "to",       label: "Technical Officers", icon: <FaUserCog />,          color: "#7c3aed" },
-  { key: "lecturer", label: "Lecturers",          icon: <FaChalkboardTeacher />,color: "#16a34a" },
-  { key: "staff",    label: "Staff / Instructors",icon: <FaUserTie />,          color: "#d97706" },
+  { key: "hod",      label: "HOD",                icon: <FaUserShield />,        color: "#2563eb", maxOne: true, note: "One HOD per department" },
+  { key: "to",       label: "Technical Officers",  icon: <FaUserCog />,           color: "#7c3aed" },
+  { key: "lecturer", label: "Lecturers",           icon: <FaChalkboardTeacher />, color: "#16a34a" },
+  { key: "staff",    label: "Staff / Instructors", icon: <FaUserTie />,           color: "#d97706" },
 ]
 
-/* ── Confirm bar (inline, no window.confirm) ── */
-function ConfirmBar({ msg, onConfirm, onCancel, danger = true }) {
-  return (
-    <div className="a-confirm-bar">
-      <span><AiOutlineWarning style={{ marginRight: 6, verticalAlign: -2 }} />{msg}</span>
-      <div style={{ display: "flex", gap: 8 }}>
-        <button className={`a-btn a-btn-sm ${danger ? "a-btn-danger" : "a-btn-primary"}`} onClick={onConfirm}>Confirm</button>
-        <button className="a-btn a-btn-sm a-btn-ghost" onClick={onCancel}>Cancel</button>
-      </div>
-    </div>
-  )
+/* ── Parse backend error message from response ── */
+async function parseError(e) {
+  // If the error has a response body with { error: "..." }, extract it
+  if (e?.response) {
+    try {
+      const body = await e.response.json()
+      if (body?.error) return body.error
+      if (body?.message) return body.message
+    } catch { /* ignore */ }
+  }
+  return e?.message || "Something went wrong"
 }
 
 export default function AdminUsers() {
-  const [sidebarOpen, setSidebarOpen] = useState(false)
-  const [departments, setDepartments] = useState([])
-  const [dept, setDept]               = useState("")
-  const [userData, setUserData]       = useState(null)
-  const [loading, setLoading]         = useState(false)
-  const [error, setError]             = useState("")
-  const [notice, setNotice]           = useState("")
-  const [editStudent, setEditStudent] = useState(null)
+  const [sidebarOpen, setSidebarOpen]   = useState(false)
+  const [departments,  setDepartments]  = useState([])
+  const [dept,         setDept]         = useState("")
+  const [userData,     setUserData]     = useState(null)
+  const [loading,      setLoading]      = useState(false)
+  const [error,        setError]        = useState("")
+  const [notice,       setNotice]       = useState("")
+  const [editStudent,  setEditStudent]  = useState(null)
   const [searchStudents, setSearchStudents] = useState("")
 
   /* load departments once */
@@ -56,7 +54,7 @@ export default function AdminUsers() {
         setDepartments(arr)
         if (arr.length) setDept(arr[0].name || arr[0])
       })
-      .catch(e => setError(e?.message || "Failed to load departments"))
+      .catch(e => showError(e?.message || "Failed to load departments"))
   }, [])
 
   /* load users when dept changes */
@@ -69,13 +67,14 @@ export default function AdminUsers() {
       setLoading(true)
       const dto = await AdminAPI.departmentUsers(d)
       setUserData(dto || null)
-    } catch (e) { setError(e?.message || "Failed to load") }
+    } catch (e) { showError(e?.message || "Failed to load") }
     finally { setLoading(false) }
   }
 
   const showNotice = (msg) => { setNotice(msg); setTimeout(() => setNotice(""), 5000) }
-  const showError  = (msg) => { setError(msg);  setTimeout(() => setError(""), 6000) }
+  const showError  = (msg) => { setError(msg);  setTimeout(() => setError(""),  7000) }
 
+  /* ── Create user ── */
   const onCreate = async (roleKey, payload) => {
     setError(""); setNotice("")
     try {
@@ -85,33 +84,64 @@ export default function AdminUsers() {
       else if (roleKey === "lecturer") await AdminAPI.createLecturer(body)
       else if (roleKey === "staff")    await AdminAPI.createStaff(body)
       else { showError("Invalid role"); return false }
-      showNotice(`${roleKey.toUpperCase()} created — Default password sent`)
+      showNotice(`${roleKey.toUpperCase()} created — default password is Default@123`)
       await loadUsers()
       return true
-    } catch (e) { showError(e?.message || "Create failed"); return false }
+    } catch (e) {
+      // Try to extract the backend's validation message (e.g. "Dept CE already has an HOD")
+      const msg = await parseError(e)
+      showError(msg)
+      return false
+    }
   }
 
+  /* ── Delete user ── */
   const onRemove = async (id) => {
-    try { await AdminAPI.deleteUser(id); showNotice("User removed"); await loadUsers() }
-    catch (e) { showError(e?.message || "Remove failed") }
-  }
-
-  const onToggleDisable = async (user) => {
-    // Backend /disable toggles: if currently enabled → disable; if disabled → re-enable (same endpoint)
     try {
-      await AdminAPI.disableUser(user.id)
-      showNotice(user.enabled === false ? "User activated" : "User disabled")
+      await AdminAPI.deleteUser(id)
+      showNotice("User removed successfully")
       await loadUsers()
-    } catch (e) { showError(e?.message || "Action failed") }
+    } catch (e) {
+      const msg = await parseError(e)
+      // 409 Conflict = has linked records — guide admin to disable instead
+      if (msg.includes("request") || msg.includes("record")) {
+        showError(msg + " → Use the Disable button to deactivate without deleting records.")
+      } else {
+        showError(msg)
+      }
+    }
   }
 
+  /* ── Disable / Enable toggle — calls correct endpoint ── */
+  const onToggleDisable = async (user) => {
+    try {
+      if (user.enabled === false) {
+        // Re-enable
+        await AdminAPI.enableUser(user.id)
+        showNotice(`${user.fullName} has been re-activated`)
+      } else {
+        // Disable
+        await AdminAPI.disableUser(user.id)
+        showNotice(`${user.fullName} has been disabled`)
+      }
+      await loadUsers()
+    } catch (e) {
+      const msg = await parseError(e)
+      showError(msg)
+    }
+  }
+
+  /* ── Update student ── */
   const onUpdateStudent = async (id, payload) => {
     try {
       await AdminAPI.updateUser(id, payload)
-      showNotice("Student updated")
+      showNotice("Student updated successfully")
       setEditStudent(null)
       await loadUsers()
-    } catch (e) { showError(e?.message || "Update failed") }
+    } catch (e) {
+      const msg = await parseError(e)
+      showError(msg)
+    }
   }
 
   const groups = useMemo(() => {
@@ -157,10 +187,15 @@ export default function AdminUsers() {
             </select>
           </div>
 
-          {error  && <div className="a-alert a-alert-error">{error}</div>}
+          {error  && (
+            <div className="a-alert a-alert-error" style={{ display: "flex", alignItems: "flex-start", gap: 8 }}>
+              <AiOutlineWarning style={{ flexShrink: 0, marginTop: 2 }} />
+              <span>{error}</span>
+            </div>
+          )}
           {notice && <div className="a-alert a-alert-success">{notice}</div>}
 
-          {/* Stat summary */}
+          {/* Stats */}
           {!loading && userData && (
             <div className="admin-stat-grid" style={{ marginBottom: 24 }}>
               {ROLE_CONFIG.map(rc => (
@@ -180,9 +215,14 @@ export default function AdminUsers() {
             </div>
           )}
 
-          {loading && <div className="a-empty"><div className="a-empty-icon">⏳</div><div className="a-empty-text">Loading users…</div></div>}
+          {loading && (
+            <div className="a-empty">
+              <div className="a-empty-icon">⏳</div>
+              <div className="a-empty-text">Loading users…</div>
+            </div>
+          )}
 
-          {/* Staff role groups */}
+          {/* Role sections */}
           {!loading && ROLE_CONFIG.map(rc => (
             <UserSection
               key={rc.key}
@@ -191,6 +231,7 @@ export default function AdminUsers() {
               icon={rc.icon}
               color={rc.color}
               note={rc.note}
+              maxOne={rc.maxOne}
               rows={groups[rc.key]}
               dept={dept}
               onCreate={onCreate}
@@ -199,7 +240,7 @@ export default function AdminUsers() {
             />
           ))}
 
-          {/* Students (read-only + edit) */}
+          {/* Students */}
           {!loading && userData && (
             <div className="a-user-section">
               <div className="a-user-section-header">
@@ -208,7 +249,9 @@ export default function AdminUsers() {
                   Students
                   <span className="a-user-count">{groups.students.length}</span>
                 </div>
-                <div style={{ fontSize: 12, color: "var(--a-text-muted)" }}>Students self-register via the signup page</div>
+                <div style={{ fontSize: 12, color: "var(--a-text-muted)" }}>
+                  Students self-register via the signup page
+                </div>
               </div>
 
               {groups.students.length > 6 && (
@@ -224,10 +267,15 @@ export default function AdminUsers() {
               <div className="a-table-wrap" style={{ margin: 0, border: "none", borderRadius: 0, boxShadow: "none" }}>
                 <table className="a-table">
                   <thead>
-                    <tr><th>Name</th><th>Reg No</th><th>Email</th><th>Status</th><th style={{ textAlign: "center" }}>Actions</th></tr>
+                    <tr>
+                      <th>Name</th><th>Reg No</th><th>Email</th><th>Status</th>
+                      <th style={{ textAlign: "center" }}>Actions</th>
+                    </tr>
                   </thead>
                   <tbody>
-                    {filteredStudents.length === 0 && <tr className="empty-row"><td colSpan="5">No students</td></tr>}
+                    {filteredStudents.length === 0 && (
+                      <tr className="empty-row"><td colSpan="5">No students found</td></tr>
+                    )}
                     {filteredStudents.map(u => (
                       <tr key={u.id}>
                         <td style={{ fontWeight: 600 }}>{u.fullName || "–"}</td>
@@ -240,14 +288,20 @@ export default function AdminUsers() {
                         </td>
                         <td className="tc">
                           <div style={{ display: "flex", gap: 6, justifyContent: "center" }}>
-                            <button className="a-btn a-btn-outline a-btn-sm a-btn-icon" title="Edit"
-                              onClick={() => setEditStudent(u)}><AiOutlineEdit /></button>
-                            <button className={`a-btn a-btn-sm a-btn-icon ${u.enabled === false ? "a-btn-success" : "a-btn-amber"}`}
-                              title={u.enabled === false ? "Activate" : "Disable"}
+                            <button className="a-btn a-btn-outline a-btn-sm a-btn-icon"
+                              title="Edit" onClick={() => setEditStudent(u)}>
+                              <AiOutlineEdit />
+                            </button>
+                            <button
+                              className={`a-btn a-btn-sm a-btn-icon ${u.enabled === false ? "a-btn-success" : "a-btn-amber"}`}
+                              title={u.enabled === false ? "Re-activate" : "Disable"}
                               onClick={() => onToggleDisable(u)}>
                               {u.enabled === false ? <AiOutlineCheckCircle /> : <AiOutlineStop />}
                             </button>
-                            <InlineRemoveBtn onConfirm={() => onRemove(u.id)} />
+                            <InlineRemoveBtn
+                              userName={u.fullName}
+                              onConfirm={() => onRemove(u.id)}
+                            />
                           </div>
                         </td>
                       </tr>
@@ -272,26 +326,27 @@ export default function AdminUsers() {
   )
 }
 
-/* ── UserSection component ── */
-function UserSection({ roleKey, label, icon, color, note, rows, dept, onCreate, onRemove, onToggleDisable }) {
+/* ─────────────────────────────────────────────────────────────
+   UserSection — one panel per role (HOD / TO / Lecturer / Staff)
+   ───────────────────────────────────────────────────────────── */
+function UserSection({ roleKey, label, icon, color, note, maxOne, rows, dept, onCreate, onRemove, onToggleDisable }) {
   const [fullName, setFullName] = useState("")
-  const [email, setEmail]       = useState("")
-  const [pwd, setPwd]           = useState("")
-  const [pwd2, setPwd2]         = useState("")
+  const [email,    setEmail]    = useState("")
   const [localErr, setLocalErr] = useState("")
-  const [saving, setSaving]     = useState(false)
+  const [saving,   setSaving]   = useState(false)
+
+  // HOD: hide add form if one already exists for this dept
+  const hodExists = maxOne && rows.length >= 1
 
   const submit = async () => {
     setLocalErr("")
     if (!fullName.trim()) return setLocalErr("Full name is required")
     if (!emailOk(email))  return setLocalErr("Valid email required")
-    if (!pwd)             return setLocalErr("Password required")
-    if (!strongPwd(pwd))  return setLocalErr("Min 8 chars: uppercase, lowercase, number, special char (@$!%*?&)")
-    if (pwd !== pwd2)     return setLocalErr("Passwords do not match")
+    // Note: password is auto-set to Default@123 by backend — no need to collect it here
 
     setSaving(true)
-    const ok = await onCreate(roleKey, { fullName: fullName.trim(), email: email.trim(), initialPassword: pwd })
-    if (ok) { setFullName(""); setEmail(""); setPwd(""); setPwd2("") }
+    const ok = await onCreate(roleKey, { fullName: fullName.trim(), email: email.trim() })
+    if (ok) { setFullName(""); setEmail("") }
     setSaving(false)
   }
 
@@ -306,45 +361,65 @@ function UserSection({ roleKey, label, icon, color, note, rows, dept, onCreate, 
         {note && <div style={{ fontSize: 12, color: "var(--a-text-muted)" }}>{note}</div>}
       </div>
 
-      {/* Add form */}
-      <div className="a-user-add-form">
-        {localErr && <div className="a-alert a-alert-error" style={{ marginBottom: 10 }}>{localErr}</div>}
-        <div className="a-user-add-grid">
-          <div className="a-form-group">
-            <label className="a-label">Full Name</label>
-            <input className="a-input" placeholder="Dr. A. Kumar" value={fullName} onChange={e => setFullName(e.target.value)} />
-          </div>
-          <div className="a-form-group">
-            <label className="a-label">Email</label>
-            <input className="a-input" placeholder="user@eng.jfn.ac.lk" value={email} onChange={e => setEmail(e.target.value)} />
-          </div>
-          <div className="a-form-group">
-            <label className="a-label">Password</label>
-            <input className="a-input" type="password" placeholder="Min 8 chars" value={pwd} onChange={e => setPwd(e.target.value)} />
-          </div>
-          <div className="a-form-group">
-            <label className="a-label">Confirm Password</label>
-            <input className="a-input" type="password" placeholder="Repeat password" value={pwd2} onChange={e => setPwd2(e.target.value)} />
-          </div>
-          <div className="a-form-group" style={{ justifyContent: "flex-end" }}>
-            <label className="a-label">&nbsp;</label>
-            <button className="a-btn a-btn-primary" onClick={submit} disabled={saving}
-              style={{ width: "100%", justifyContent: "center" }}>
-              <AiOutlineUserAdd />
-              {saving ? "Creating…" : `Add ${label.split(" ")[0]}`}
-            </button>
+      {/* Add form — hide if maxOne constraint is met */}
+      {hodExists ? (
+        <div className="a-user-add-form" style={{ background: "#fefce8", borderBottom: "1px solid #fef08a" }}>
+          <div style={{ display: "flex", alignItems: "center", gap: 8, fontSize: 13, color: "#92400e" }}>
+            <AiOutlineWarning />
+            <span>
+              <strong>{dept}</strong> already has an HOD. Remove or disable the existing HOD before adding a new one.
+            </span>
           </div>
         </div>
-      </div>
+      ) : (
+        <div className="a-user-add-form">
+          {localErr && (
+            <div className="a-alert a-alert-error" style={{ marginBottom: 10 }}>{localErr}</div>
+          )}
+          <div className="a-user-add-grid">
+            <div className="a-form-group">
+              <label className="a-label">Full Name</label>
+              <input className="a-input" placeholder="Dr. A. Kumar"
+                value={fullName} onChange={e => setFullName(e.target.value)} />
+            </div>
+            <div className="a-form-group">
+              <label className="a-label">Email</label>
+              <input className="a-input" placeholder="user@eng.jfn.ac.lk"
+                value={email} onChange={e => setEmail(e.target.value)} />
+            </div>
+            <div className="a-form-group">
+              <label className="a-label">Password</label>
+              <input className="a-input" value="Default@123" disabled
+                style={{ color: "#94a3b8", background: "#f8fafc" }} />
+              <span style={{ fontSize: 11, color: "#94a3b8", marginTop: 2 }}>
+                Auto-set — user must change on first login
+              </span>
+            </div>
+            <div className="a-form-group" style={{ justifyContent: "flex-end" }}>
+              <label className="a-label">&nbsp;</label>
+              <button className="a-btn a-btn-primary" onClick={submit} disabled={saving}
+                style={{ width: "100%", justifyContent: "center" }}>
+                <AiOutlineUserAdd />
+                {saving ? "Creating…" : `Add ${label.split(" ")[0]}`}
+              </button>
+            </div>
+          </div>
+        </div>
+      )}
 
       {/* Users table */}
       <div className="a-table-wrap" style={{ margin: 0, border: "none", borderRadius: 0, boxShadow: "none" }}>
         <table className="a-table">
           <thead>
-            <tr><th>Name</th><th>Email</th><th>Status</th><th style={{ textAlign: "center" }}>Actions</th></tr>
+            <tr>
+              <th>Name</th><th>Email</th><th>Status</th>
+              <th style={{ textAlign: "center" }}>Actions</th>
+            </tr>
           </thead>
           <tbody>
-            {rows.length === 0 && <tr className="empty-row"><td colSpan="4">No {label.toLowerCase()} in {dept}</td></tr>}
+            {rows.length === 0 && (
+              <tr className="empty-row"><td colSpan="4">No {label.toLowerCase()} in {dept}</td></tr>
+            )}
             {rows.map(u => (
               <tr key={u.id}>
                 <td style={{ fontWeight: 600 }}>{u.fullName || u.name || "–"}</td>
@@ -358,11 +433,14 @@ function UserSection({ roleKey, label, icon, color, note, rows, dept, onCreate, 
                   <div style={{ display: "flex", gap: 6, justifyContent: "center" }}>
                     <button
                       className={`a-btn a-btn-sm a-btn-icon ${u.enabled === false ? "a-btn-success" : "a-btn-amber"}`}
-                      title={u.enabled === false ? "Activate" : "Disable"}
+                      title={u.enabled === false ? "Re-activate account" : "Disable account"}
                       onClick={() => onToggleDisable(u)}>
                       {u.enabled === false ? <AiOutlineCheckCircle /> : <AiOutlineStop />}
                     </button>
-                    <InlineRemoveBtn onConfirm={() => onRemove(u.id)} />
+                    <InlineRemoveBtn
+                      userName={u.fullName}
+                      onConfirm={() => onRemove(u.id)}
+                    />
                   </div>
                 </td>
               </tr>
@@ -374,40 +452,58 @@ function UserSection({ roleKey, label, icon, color, note, rows, dept, onCreate, 
   )
 }
 
-/* ── Inline remove with confirm (no window.confirm) ── */
-function InlineRemoveBtn({ onConfirm }) {
+/* ─────────────────────────────────────────────────────────────
+   Inline remove with confirmation — no window.confirm
+   ───────────────────────────────────────────────────────────── */
+function InlineRemoveBtn({ userName, onConfirm }) {
   const [confirming, setConfirming] = useState(false)
+
   if (confirming) {
     return (
       <div style={{ display: "flex", gap: 5, alignItems: "center" }}>
-        <span style={{ fontSize: 11.5, color: "#dc2626", fontWeight: 600 }}>Remove?</span>
-        <button className="a-btn a-btn-danger a-btn-sm" style={{ padding: "3px 8px" }} onClick={() => { setConfirming(false); onConfirm() }}>Yes</button>
-        <button className="a-btn a-btn-ghost a-btn-sm" style={{ padding: "3px 8px" }} onClick={() => setConfirming(false)}>No</button>
+        <span style={{ fontSize: 11, color: "#dc2626", fontWeight: 600, whiteSpace: "nowrap" }}>
+          Remove {userName?.split(" ")[0]}?
+        </span>
+        <button className="a-btn a-btn-danger a-btn-sm" style={{ padding: "3px 8px" }}
+          onClick={() => { setConfirming(false); onConfirm() }}>
+          Yes
+        </button>
+        <button className="a-btn a-btn-ghost a-btn-sm" style={{ padding: "3px 8px" }}
+          onClick={() => setConfirming(false)}>
+          No
+        </button>
       </div>
     )
   }
+
   return (
-    <button className="a-btn a-btn-sm a-btn-icon a-btn-danger" title="Remove" onClick={() => setConfirming(true)}>
+    <button className="a-btn a-btn-sm a-btn-icon a-btn-danger"
+      title="Remove user" onClick={() => setConfirming(true)}>
       <AiOutlineUserDelete />
     </button>
   )
 }
 
-/* ── Edit Student Modal ── */
+/* ─────────────────────────────────────────────────────────────
+   Edit Student Modal
+   ───────────────────────────────────────────────────────────── */
 function EditStudentModal({ student, onClose, onSave }) {
   const [fullName, setFullName] = useState(student?.fullName || "")
-  const [regNo, setRegNo]       = useState(student?.regNo || "")
-  const [msg, setMsg]           = useState("")
-  const [saving, setSaving]     = useState(false)
+  const [regNo,    setRegNo]    = useState(student?.regNo || "")
+  const [msg,      setMsg]      = useState("")
+  const [saving,   setSaving]   = useState(false)
 
   const submit = async () => {
     setMsg("")
     if (!fullName.trim()) return setMsg("Name is required")
-    if (!regNo.trim())    return setMsg("Reg No is required")
     setSaving(true)
-    try { await onSave(student.id, { fullName: fullName.trim(), regNo: regNo.trim() }) }
-    catch (e) { setMsg(e?.message || "Save failed") }
-    finally { setSaving(false) }
+    try {
+      await onSave(student.id, { fullName: fullName.trim(), regNo: regNo.trim() || undefined })
+    } catch (e) {
+      setMsg(e?.message || "Save failed")
+    } finally {
+      setSaving(false)
+    }
   }
 
   return (
@@ -415,27 +511,34 @@ function EditStudentModal({ student, onClose, onSave }) {
       <div className="a-modal">
         <div style={{ display: "flex", justifyContent: "space-between", alignItems: "center", marginBottom: 18 }}>
           <div className="a-modal-title">Edit Student</div>
-          <button className="a-btn a-btn-ghost a-btn-icon" onClick={onClose}><AiOutlineClose /></button>
+          <button className="a-btn a-btn-ghost a-btn-icon" onClick={onClose}>
+            <AiOutlineClose />
+          </button>
         </div>
+
         {msg && <div className="a-alert a-alert-error">{msg}</div>}
+
         <div style={{ display: "grid", gap: 14 }}>
           <div className="a-form-group">
             <label className="a-label">Full Name</label>
-            <input className="a-input" value={fullName} onChange={e => setFullName(e.target.value)} />
+            <input className="a-input" value={fullName}
+              onChange={e => setFullName(e.target.value)} />
           </div>
           <div className="a-form-group">
             <label className="a-label">Reg No</label>
-            <input className="a-input" placeholder="2022/E/063" value={regNo} onChange={e => setRegNo(e.target.value)} />
+            <input className="a-input" placeholder="2022/E/063"
+              value={regNo} onChange={e => setRegNo(e.target.value)} />
           </div>
           <div className="a-form-group">
-            <label className="a-label">Email (read-only)</label>
+            <label className="a-label">Email <span style={{ color: "#94a3b8", fontWeight: 400 }}>(read-only)</span></label>
             <input className="a-input" value={student?.email || ""} disabled />
           </div>
           <div className="a-form-group">
-            <label className="a-label">Department (read-only)</label>
+            <label className="a-label">Department <span style={{ color: "#94a3b8", fontWeight: 400 }}>(read-only)</span></label>
             <input className="a-input" value={student?.department || "–"} disabled />
           </div>
         </div>
+
         <div className="a-modal-actions">
           <button className="a-btn a-btn-ghost" onClick={onClose} disabled={saving}>Cancel</button>
           <button className="a-btn a-btn-primary" onClick={submit} disabled={saving}>
