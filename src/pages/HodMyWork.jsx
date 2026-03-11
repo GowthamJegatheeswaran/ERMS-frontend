@@ -95,7 +95,7 @@ export default function HodDashboard() {
 
           {/* Quick Actions */}
           <h3>Quick Actions</h3>
-          <div className="actions">
+          <div className="dashboard-quick-actions">
             <button onClick={() => navigate("/lecturer-new-request")}><AiOutlinePlus size={18} /> New Request</button>
             <button onClick={() => navigate("/lecturer-applications")}><AiOutlineFileText size={18} /> Applications</button>
             <button onClick={() => navigate("/lecturer-view-requests")}><AiOutlineFileText size={18} /> View Requests</button>
