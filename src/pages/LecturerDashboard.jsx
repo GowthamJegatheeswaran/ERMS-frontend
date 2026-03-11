@@ -1,75 +1,101 @@
-import "../styles/lecturerDashboard.css"
+import "../styles/dashboard.css"
 import Sidebar from "../components/Sidebar"
 import Topbar from "../components/Topbar"
-import SummaryCard from "../components/SummaryCard"
 import { useEffect, useMemo, useState } from "react"
 import { useNavigate } from "react-router-dom"
 import { LecturerRequestAPI, AuthAPI } from "../api/api"
-import { 
-  AiOutlinePlus, 
-  AiOutlineFileText, 
-  AiOutlineClockCircle, 
-  AiOutlineCheckCircle, 
-  AiOutlineHourglass 
+import {
+  AiOutlinePlus, AiOutlineFileText,
+  AiOutlineClockCircle, AiOutlineCheckCircle,
+  AiOutlineCloseCircle, AiOutlineHourglass  // BUG FIX: was missing AiOutlineCloseCircle
 } from "react-icons/ai"
+import {
+  PieChart, Pie, Cell, Tooltip, ResponsiveContainer, Legend,
+  BarChart, Bar, XAxis, YAxis, CartesianGrid
+} from "recharts"
+
+const PIE_COLORS = ["#f59e0b", "#22c55e", "#ef4444", "#3b82f6", "#a855f7"]
+
+function statusLabel(s) {
+  if (!s) return "Other"
+  const sl = s.toLowerCase()
+  if (sl === "pending_lecturer_approval") return "Pending"
+  if (sl === "rejected_by_lecturer") return "Rejected"
+  if (sl.includes("issued")) return "Issued"
+  if (sl.includes("return")) return "Returned"
+  return "Approved"
+}
 
 export default function LecturerDashboard() {
   const navigate = useNavigate()
   const [sidebarOpen, setSidebarOpen] = useState(false)
   const [queue, setQueue] = useState([])
   const [myRows, setMyRows] = useState([])
-  const [loading, setLoading] = useState(false)
-  const [error, setError] = useState("")
   const [user, setUser] = useState(null)
-
-  // Load dashboard data
-  const load = async () => {
-    setError("")
-    try {
-      setLoading(true)
-      const [q, my] = await Promise.all([LecturerRequestAPI.queue(), LecturerRequestAPI.my()])
-      setQueue(Array.isArray(q) ? q : [])
-      setMyRows(Array.isArray(my) ? my : [])
-    } catch (e) {
-      setError(e?.message || "Failed to load lecturer dashboard")
-    } finally {
-      setLoading(false)
-    }
-  }
+  const [loading, setLoading] = useState(true)
+  const [error, setError] = useState("")
 
   useEffect(() => {
-    load()
-    const fetchUser = async () => {
+    const load = async () => {
       try {
-        const me = await AuthAPI.me()
+        const [q, my, me] = await Promise.all([
+          LecturerRequestAPI.queue(),
+          LecturerRequestAPI.my(),
+          AuthAPI.me(),
+        ])
+        setQueue(Array.isArray(q) ? q : [])
+        setMyRows(Array.isArray(my) ? my : [])
         setUser(me)
-      } catch (err) {
-        console.error("Failed to fetch user", err)
+      } catch (e) {
+        setError(e?.message || "Failed to load")
+      } finally {
+        setLoading(false)
       }
     }
-    fetchUser()
-    // eslint-disable-next-line react-hooks/exhaustive-deps
+    load()
   }, [])
 
-  // Counts for summary cards
-  const counts = useMemo(() => {
-    const pendingApplications = queue.length
-    const totalMine = myRows.length
-    const pendingMine = myRows.filter(r => r.status === "PENDING_LECTURER_APPROVAL").length
-    const approvedMine = myRows.filter(r => r.status === "APPROVED").length
-    return { pendingApplications, totalMine, pendingMine, approvedMine }
-  }, [queue, myRows])
+  const counts = useMemo(() => ({
+    pendingApprovals: queue.length,
+    totalMine: myRows.length,
+    pendingMine: myRows.filter(r => r.status === "PENDING_LECTURER_APPROVAL").length,
+    approvedMine: myRows.filter(r => ["APPROVED_BY_LECTURER", "TO_PROCESSING", "ISSUED_CONFIRMED"].includes(r.status)).length,
+  }), [queue, myRows])
 
-  const recentMine = useMemo(() => {
-    return [...myRows].sort((a, b) => (b.requestId || 0) - (a.requestId || 0)).slice(0, 3)
+  // Pie: my requests by status
+  const myPieData = useMemo(() => {
+    const map = {}
+    for (const r of myRows) {
+      const label = statusLabel(r.status)
+      map[label] = (map[label] || 0) + 1
+    }
+    return Object.entries(map).map(([name, value]) => ({ name, value }))
   }, [myRows])
+
+  // Bar: top equipment requested in queue
+  const topEquipData = useMemo(() => {
+    const map = {}
+    for (const r of queue) {
+      for (const item of (r.items || [])) {
+        const name = item.equipmentName || "Unknown"
+        map[name] = (map[name] || 0) + (item.quantity || 1)
+      }
+    }
+    return Object.entries(map)
+      .sort(([, a], [, b]) => b - a)
+      .slice(0, 6)
+      .map(([name, count]) => ({ name: name.length > 14 ? name.slice(0, 14) + "…" : name, count }))
+  }, [queue])
+
+  const recentMine = useMemo(() =>
+    [...myRows].sort((a, b) => (b.requestId || 0) - (a.requestId || 0)).slice(0, 5)
+  , [myRows])
 
   const itemsPreview = (r) => {
     const items = Array.isArray(r?.items) ? r.items : []
-    if (items.length === 0) return { text: "-", qty: "-" }
-    if (items.length === 1) return { text: items[0].equipmentName || "-", qty: items[0].quantity ?? "-" }
-    const first = items[0]
-    return { text: `${first.equipmentName || "-"} +${items.length - 1} more`, qty: first.quantity ?? "-" }
+    if (!items.length) return "-"
+    if (items.length === 1) return items[0].equipmentName || "-"
+    return `${items[0].equipmentName || "-"} +${items.length - 1} more`
   }
 
   return (
@@ -77,85 +103,143 @@ export default function LecturerDashboard() {
       <Sidebar isOpen={sidebarOpen} onClose={() => setSidebarOpen(false)} />
       <div className="main-content">
         <Topbar onMenuClick={() => setSidebarOpen(true)} />
-
         <div className="content">
-          {/* Welcome Lecturer */}
-          <h2 className="welcome">
-            Welcome, {user?.fullName || "Lecturer"}!
-          </h2>
 
-          {error && <div className="error-message" style={{ color: "red", marginBottom: 10 }}>{error}</div>}
+          <h2 className="welcome">Welcome, {user?.fullName || "Lecturer"}!</h2>
+          {error && <div className="alert alert-error">{error}</div>}
 
           {/* Summary Cards */}
-          {/* Summary Cards - Reordered */}
-<div className="summary-grid">
-  {/* 1: Pending Applications */}
-  <SummaryCard 
-    title="Pending Applications" 
-    value={counts.pendingApplications} 
-    icon={<AiOutlineHourglass size={28} />} 
-    className="pending"
-  />
+          <div className="summary-grid">
+            <div className="summary-card pending">
+              <div className="card-icon"><AiOutlineHourglass size={22} /></div>
+              <div className="card-info"><h4>Pending Approvals</h4><p>{counts.pendingApprovals}</p></div>
+            </div>
+            <div className="summary-card total">
+              <div className="card-icon"><AiOutlineFileText size={22} /></div>
+              <div className="card-info"><h4>My Requests</h4><p>{counts.totalMine}</p></div>
+            </div>
+            <div className="summary-card approved">
+              <div className="card-icon"><AiOutlineCheckCircle size={22} /></div>
+              <div className="card-info"><h4>My Approved</h4><p>{counts.approvedMine}</p></div>
+            </div>
+            <div className="summary-card rejected">
+              <div className="card-icon"><AiOutlineCloseCircle size={22} /></div>
+              <div className="card-info"><h4>My Pending</h4><p>{counts.pendingMine}</p></div>
+            </div>
+          </div>
 
-  {/* 2: My Total Requests */}
-  <SummaryCard 
-    title="My Total Requests" 
-    value={counts.totalMine} 
-    icon={<AiOutlineFileText size={28} />} 
-    className="total"
-  />
+          {/* Charts */}
+          <div className="charts-grid" style={{ gridTemplateColumns: myPieData.length > 0 && topEquipData.length > 0 ? "1fr 1fr" : "1fr" }}>
+            {myPieData.length > 0 && (
+              <div className="chart-card">
+                <div className="chart-card-title">
+                  <span className="chart-icon">🥧</span> My Request Status
+                </div>
+                <ResponsiveContainer width="100%" height={210}>
+                  <PieChart>
+                    <Pie data={myPieData} cx="50%" cy="50%" outerRadius={75} dataKey="value">
+                      {myPieData.map((_, i) => (
+                        <Cell key={i} fill={PIE_COLORS[i % PIE_COLORS.length]} />
+                      ))}
+                    </Pie>
+                    <Tooltip />
+                    <Legend />
+                  </PieChart>
+                </ResponsiveContainer>
+              </div>
+            )}
+            {topEquipData.length > 0 && (
+              <div className="chart-card">
+                <div className="chart-card-title">
+                  <span className="chart-icon">📦</span> Top Requested Equipment (Queue)
+                </div>
+                <ResponsiveContainer width="100%" height={210}>
+                  <BarChart data={topEquipData} layout="vertical" margin={{ top: 5, right: 20, bottom: 5, left: 0 }}>
+                    <CartesianGrid strokeDasharray="3 3" stroke="#f1f5f9" horizontal={false} />
+                    <XAxis type="number" allowDecimals={false} tick={{ fontSize: 11 }} />
+                    <YAxis dataKey="name" type="category" tick={{ fontSize: 11 }} width={90} />
+                    <Tooltip />
+                    <Bar dataKey="count" fill="#6366f1" radius={[0, 4, 4, 0]} name="Qty" />
+                  </BarChart>
+                </ResponsiveContainer>
+              </div>
+            )}
+          </div>
 
-  
-</div>
-
-          {/* Quick Actions Horizontal */}
-           <h3>Quick Action</h3>
+          {/* Quick Actions */}
+          <div className="section-label">Quick Actions</div>
           <div className="dashboard-quick-actions">
             <button onClick={() => navigate("/lecturer-new-request")}>
-              <AiOutlinePlus size={18} /> New Request
+              <AiOutlinePlus size={16} /> New Request
             </button>
             <button onClick={() => navigate("/lecturer-applications")}>
-              <AiOutlineFileText size={18} /> Applications
+              <AiOutlineFileText size={16} /> Pending Approvals ({counts.pendingApprovals})
             </button>
           </div>
 
-          {/* Recent Requests Table */}
-          <h3 style={{ marginTop: 24 }}>My Recent Requests</h3>
-          <table className="requests-table">
-            <thead>
-              <tr>
-                <th>Equipment</th>
-                <th>Quantity</th>
-                <th>From</th>
-                <th>Status</th>
-              </tr>
-            </thead>
-            <tbody>
-              {recentMine.map((r) => {
-                const p = itemsPreview(r)
-                const statusClass = String(r.status || "").toLowerCase()
-                return (
+          {/* Recent my requests */}
+          <div className="section-card">
+            <div className="section-card-title">My Recent Requests</div>
+            <table className="requests-table">
+              <thead>
+                <tr><th>Equipment</th><th>From Date</th><th>Status</th></tr>
+              </thead>
+              <tbody>
+                {loading && <tr><td colSpan="3" className="loading-state">Loading…</td></tr>}
+                {!loading && recentMine.length === 0 && <tr><td colSpan="3" className="empty-state">No requests yet</td></tr>}
+                {recentMine.map(r => (
                   <tr key={r.requestId}>
-                    <td>{p.text}</td>
-                    <td style={{ textAlign: "center" }}>{p.qty}</td>
-                    <td style={{ textAlign: "center" }}>{r.fromDate || "-"}</td>
-                    <td style={{ textAlign: "center", display: "flex", alignItems: "center", justifyContent: "center", gap: "6px" }}>
-                      {statusClass === "pending_lecturer_approval" && <AiOutlineClockCircle color="#fbbf24" />}
-                      {statusClass === "approved" && <AiOutlineCheckCircle color="#16a34a" />}
-                      {statusClass === "rejected_by_lecturer" && <AiOutlineCloseCircle color="#dc2626" />}
-                      <span>{r.status || "-"}</span>
+                    <td>{itemsPreview(r)}</td>
+                    <td>{r.fromDate || "–"}</td>
+                    <td>
+                      <span className={`status-pill ${(r.status || "").toLowerCase()}`}>
+                        {r.status?.replace(/_/g, " ") || "–"}
+                      </span>
                     </td>
                   </tr>
-                )
-              })}
-              {recentMine.length === 0 && !loading && (
-                <tr>
-                  <td colSpan="4" style={{ textAlign: "center" }}>No requests yet</td>
-                </tr>
+                ))}
+              </tbody>
+            </table>
+          </div>
+
+          {/* Pending queue preview */}
+          {queue.length > 0 && (
+            <div className="section-card">
+              <div className="section-card-title">
+                Pending Student Applications &nbsp;
+                <span style={{ background: "#fee2e2", color: "#b91c1c", padding: "2px 8px", borderRadius: 10, fontSize: 12 }}>
+                  {queue.length} awaiting
+                </span>
+              </div>
+              <table className="requests-table">
+                <thead>
+                  <tr><th>Requester</th><th>Equipment</th><th>Lab</th><th>From</th></tr>
+                </thead>
+                <tbody>
+                  {queue.slice(0, 5).map(r => (
+                    <tr key={r.requestId}>
+                      <td>{r.requesterFullName || "–"}</td>
+                      <td>{itemsPreview(r)}</td>
+                      <td>{r.labName || "–"}</td>
+                      <td>{r.fromDate || "–"}</td>
+                    </tr>
+                  ))}
+                </tbody>
+              </table>
+              {queue.length > 5 && (
+                <div style={{ textAlign: "center", marginTop: 10 }}>
+                  <button className="btn-outline" onClick={() => navigate("/lecturer-applications")}>
+                    View all {queue.length} applications
+                  </button>
+                </div>
               )}
-            </tbody>
-          </table>
+            </div>
+          )}
+
         </div>
+        <footer className="dashboard-footer">
+          Faculty of Engineering · University of Jaffna &nbsp;|&nbsp; © 2026 ERMS
+        </footer>
       </div>
     </div>
   )
