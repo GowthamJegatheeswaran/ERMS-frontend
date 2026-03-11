@@ -70,9 +70,6 @@ export default function HodDeptPurchase() {
           <div className="dept-purchase-header">
             <div>
               <h2 className="welcome" style={{ marginBottom: 4 }}>Department Equipment Requests</h2>
-              <p className="dept-purchase-flow">
-                TO Request &rarr; <strong>HOD Approve</strong> &rarr; Admin Issue &rarr; <strong>HOD Confirm Received</strong>
-              </p>
             </div>
             <div className="dept-purchase-counts">
               <div className="dept-count-badge pending-count">
@@ -147,9 +144,6 @@ export default function HodDeptPurchase() {
 
           {/* ── SECTION 2: Issued — Confirm Received ── */}
           <h3 className="dept-section-title" style={{ marginTop: 36 }}>Issued — Confirm Received</h3>
-          <p className="dept-purchase-flow" style={{ marginBottom: 16 }}>
-            Admin has issued these purchases. Confirm receipt to update inventory.
-          </p>
 
           {!loading && sortedIssued.length === 0 && (
             <div className="dept-empty">No issued purchases awaiting confirmation</div>
