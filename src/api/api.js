@@ -1,4 +1,4 @@
-// ERMS API — Spring Boot backend (JWT auth)
+// ERMS API — Spring Boot backend (JWT auth))
 // Dev: Vite proxy in vite.config.js forwards /api → http://localhost:8080
 // Prod: Set VITE_API_BASE_URL="https://your-domain.com"
 
