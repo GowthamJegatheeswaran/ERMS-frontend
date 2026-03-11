@@ -1,101 +1,143 @@
-import "../styles/dashboard.css"
+import "../styles/studentTheme.css"
 import Sidebar from "../components/Sidebar"
 import Topbar from "../components/Topbar"
 import { useEffect, useMemo, useState } from "react"
 import { useNavigate } from "react-router-dom"
-import { StudentRequestAPI, AuthAPI } from "../api/api"
+import { AuthAPI, StudentRequestAPI } from "../api/api"
 import {
-  AiOutlineClockCircle, AiOutlineCheckCircle, AiOutlineCloseCircle,
-  AiOutlineFileText, AiOutlinePlus
-} from "react-icons/ai"
-import {
-  PieChart, Pie, Cell, Tooltip, ResponsiveContainer, Legend,
-  BarChart, Bar, XAxis, YAxis, CartesianGrid
+  PieChart, Pie, Cell, Tooltip, Legend, ResponsiveContainer,
+  BarChart, Bar, XAxis, YAxis, CartesianGrid,
 } from "recharts"
 
-const STATUS_COLORS = {
-  "Pending":   "#f59e0b",
-  "Approved":  "#22c55e",
-  "Rejected":  "#ef4444",
-  "Issued":    "#3b82f6",
-  "Returned":  "#a855f7",
+/* ── Status helpers ── */
+function reqStatusLabel(s) {
+  switch (String(s || "").toUpperCase()) {
+    case "PENDING_LECTURER_APPROVAL":     return "Pending Approval"
+    case "APPROVED_BY_LECTURER":          return "Approved"
+    case "REJECTED_BY_LECTURER":          return "Rejected"
+    case "TO_PROCESSING":                 return "TO Processing"
+    case "ISSUED_PENDING_STUDENT_ACCEPT": return "Issued — Confirm?"
+    case "ISSUED_CONFIRMED":              return "Issued & Confirmed"
+    case "RETURNED_PENDING_TO_VERIFY":    return "Return Pending"
+    case "RETURNED_VERIFIED":             return "Returned"
+    case "DAMAGED_REPORTED":              return "Damaged"
+    default: return String(s || "").replace(/_/g, " ") || "—"
+  }
 }
 
-function statusLabel(s) {
-  if (!s) return "Other"
-  const sl = s.toLowerCase()
-  if (sl === "pending_lecturer_approval") return "Pending"
-  if (sl === "rejected_by_lecturer") return "Rejected"
-  if (sl.includes("issued")) return "Issued"
-  if (sl.includes("return")) return "Returned"
+function reqSpClass(s) {
+  switch (String(s || "").toUpperCase()) {
+    case "PENDING_LECTURER_APPROVAL":     return "st-sp st-sp-pending"
+    case "APPROVED_BY_LECTURER":          return "st-sp st-sp-approved"
+    case "REJECTED_BY_LECTURER":          return "st-sp st-sp-rejected"
+    case "TO_PROCESSING":                 return "st-sp st-sp-processing"
+    case "ISSUED_PENDING_STUDENT_ACCEPT": return "st-sp st-sp-issued"
+    case "ISSUED_CONFIRMED":              return "st-sp st-sp-confirmed"
+    case "RETURNED_PENDING_TO_VERIFY":    return "st-sp st-sp-return-req"
+    case "RETURNED_VERIFIED":             return "st-sp st-sp-returned"
+    case "DAMAGED_REPORTED":              return "st-sp st-sp-damaged"
+    default: return "st-sp st-sp-slate"
+  }
+}
+
+/* Semantic bucket for charts */
+function reqBucket(s) {
+  const u = String(s || "").toUpperCase()
+  if (u === "PENDING_LECTURER_APPROVAL")                         return "Pending"
+  if (u === "REJECTED_BY_LECTURER")                              return "Rejected"
+  if (u === "RETURNED_VERIFIED" || u === "DAMAGED_REPORTED")     return "Completed"
+  if (u.includes("ISSUED") || u === "TO_PROCESSING")             return "Issued / Active"
+  if (u.includes("RETURN"))                                      return "Returning"
   return "Approved"
+}
+
+/* Need-action: student has something to do */
+function needsAction(r) {
+  const u = String(r.status || "").toUpperCase()
+  if (u === "ISSUED_PENDING_STUDENT_ACCEPT") return true
+  // any item pending accept
+  if (Array.isArray(r.items) && r.items.some(
+    it => String(it.itemStatus || "").toUpperCase() === "ISSUED_PENDING_REQUESTER_ACCEPT"
+  )) return true
+  return false
+}
+
+const PIE_COLORS = ["#d97706", "#16a34a", "#dc2626", "#4f46e5", "#7c3aed", "#0891b2"]
+
+function itemsSummary(r) {
+  const items = Array.isArray(r?.items) ? r.items : []
+  if (!items.length) return "—"
+  if (items.length === 1) return items[0].equipmentName || "—"
+  return `${items[0].equipmentName || "—"} +${items.length - 1} more`
 }
 
 export default function StudentDashboard() {
   const navigate = useNavigate()
   const [sidebarOpen, setSidebarOpen] = useState(false)
-  const [user, setUser] = useState(null)
-  const [rows, setRows] = useState([])
+  const [rows,    setRows]    = useState([])
+  const [user,    setUser]    = useState(null)
   const [loading, setLoading] = useState(true)
-  const [error, setError] = useState("")
+  const [error,   setError]   = useState("")
 
   useEffect(() => {
-    const load = async () => {
+    let alive = true
+    ;(async () => {
       try {
         const [list, me] = await Promise.all([StudentRequestAPI.my(), AuthAPI.me()])
+        if (!alive) return
         setRows(Array.isArray(list) ? list : [])
         setUser(me)
       } catch (e) {
-        setError(e?.message || "Failed to load")
+        if (alive) setError(e?.message || "Failed to load dashboard")
       } finally {
-        setLoading(false)
+        if (alive) setLoading(false)
       }
-    }
-    load()
+    })()
+    return () => { alive = false }
   }, [])
 
-  const counts = useMemo(() => {
-    const pending  = rows.filter(r => r.status === "PENDING_LECTURER_APPROVAL").length
-    const rejected = rows.filter(r => r.status === "REJECTED_BY_LECTURER").length
-    const issued   = rows.filter(r => r.status?.includes("ISSUED")).length
-    const approved = rows.length - pending - rejected - issued
-    return { pending, approved: approved < 0 ? 0 : approved, rejected, issued, total: rows.length }
-  }, [rows])
+  /* ── Counts ── */
+  const counts = useMemo(() => ({
+    total:      rows.length,
+    pending:    rows.filter(r => String(r.status || "").toUpperCase() === "PENDING_LECTURER_APPROVAL").length,
+    active:     rows.filter(r => {
+      const u = String(r.status || "").toUpperCase()
+      return u !== "PENDING_LECTURER_APPROVAL" && u !== "REJECTED_BY_LECTURER" &&
+             u !== "RETURNED_VERIFIED" && u !== "DAMAGED_REPORTED"
+    }).length,
+    needAction: rows.filter(needsAction).length,
+    completed:  rows.filter(r => {
+      const u = String(r.status || "").toUpperCase()
+      return u === "RETURNED_VERIFIED" || u === "DAMAGED_REPORTED"
+    }).length,
+  }), [rows])
 
+  /* ── Pie data ── */
   const pieData = useMemo(() => {
     const map = {}
-    for (const r of rows) {
-      const label = statusLabel(r.status)
-      map[label] = (map[label] || 0) + 1
-    }
+    for (const r of rows) { const k = reqBucket(r.status); map[k] = (map[k] || 0) + 1 }
     return Object.entries(map).map(([name, value]) => ({ name, value }))
   }, [rows])
 
-  // Monthly bar — count requests by month
+  /* ── Monthly bar ── */
   const barData = useMemo(() => {
-    const monthMap = {}
+    const map = {}
     for (const r of rows) {
       const d = r.fromDate ? new Date(r.fromDate) : null
-      if (!d) continue
+      if (!d || isNaN(d)) continue
       const key = `${d.getFullYear()}-${String(d.getMonth() + 1).padStart(2, "0")}`
-      monthMap[key] = (monthMap[key] || 0) + 1
+      map[key] = (map[key] || 0) + 1
     }
-    return Object.entries(monthMap)
+    return Object.entries(map)
       .sort(([a], [b]) => a.localeCompare(b))
       .slice(-6)
       .map(([month, count]) => ({ month: month.slice(5), count }))
   }, [rows])
 
+  /* ── Recent 8 requests ── */
   const recent = useMemo(() =>
-    [...rows].sort((a, b) => (b.requestId || 0) - (a.requestId || 0)).slice(0, 5)
+    [...rows].sort((a, b) => (b.requestId || 0) - (a.requestId || 0)).slice(0, 8)
   , [rows])
-
-  const itemsPreview = (r) => {
-    const items = Array.isArray(r?.items) ? r.items : []
-    if (!items.length) return "-"
-    if (items.length === 1) return items[0].equipmentName || "-"
-    return `${items[0].equipmentName || "-"} +${items.length - 1} more`
-  }
 
   return (
     <div className="dashboard-container">
@@ -104,114 +146,185 @@ export default function StudentDashboard() {
         <Topbar onMenuClick={() => setSidebarOpen(true)} />
         <div className="content">
 
-          <h2 className="welcome">Welcome, {user?.fullName || "Student"}!</h2>
-          {error && <div className="alert alert-error">{error}</div>}
+          {/* Welcome Banner */}
+          <div className="st-welcome-banner">
+            <div className="st-welcome-name">
+              Welcome back, {user?.fullName || "Student"}!
+            </div>
+            <div className="st-welcome-sub">
+              {user?.regNo ? `Reg. No: ${user.regNo}` : ""}
+              {user?.regNo && user?.department ? " · " : ""}
+              {user?.department || ""}
+              {(user?.regNo || user?.department) ? " · " : ""}
+              Faculty of Engineering, University of Jaffna
+            </div>
+            {user?.role && (
+              <div className="st-welcome-badge">🎓 {user.role}</div>
+            )}
+          </div>
 
-          {/* Summary Cards */}
-          <div className="summary-grid">
-            <div className="summary-card pending">
-              <div className="card-icon"><AiOutlineClockCircle size={22} /></div>
-              <div className="card-info"><h4>Pending</h4><p>{counts.pending}</p></div>
+          {/* Page Header */}
+          <div className="st-page-header">
+            <div className="st-page-header-left">
+              <div className="st-page-title">Dashboard</div>
+              <div className="st-page-subtitle">Overview of your equipment requests</div>
             </div>
-            <div className="summary-card approved">
-              <div className="card-icon"><AiOutlineCheckCircle size={22} /></div>
-              <div className="card-info"><h4>Approved</h4><p>{counts.approved}</p></div>
+            <div className="st-page-actions">
+              <button className="st-btn st-btn-primary" onClick={() => navigate("/new-request")}>
+                + New Request
+              </button>
             </div>
-            <div className="summary-card rejected">
-              <div className="card-icon"><AiOutlineCloseCircle size={22} /></div>
-              <div className="card-info"><h4>Rejected</h4><p>{counts.rejected}</p></div>
+          </div>
+
+          {error && <div className="st-alert st-alert-error">{error}</div>}
+
+          {/* Stat Cards */}
+          <div className="st-stat-grid">
+            <div className="st-stat-card indigo">
+              <div className="st-stat-label">Total Requests</div>
+              <div className="st-stat-value">{loading ? "—" : counts.total}</div>
+              <div className="st-stat-sub">All time</div>
             </div>
-            <div className="summary-card total">
-              <div className="card-icon"><AiOutlineFileText size={22} /></div>
-              <div className="card-info"><h4>Total</h4><p>{counts.total}</p></div>
+            <div className="st-stat-card amber">
+              <div className="st-stat-label">Pending</div>
+              <div className="st-stat-value">{loading ? "—" : counts.pending}</div>
+              <div className="st-stat-sub">Awaiting lecturer</div>
+            </div>
+            <div className="st-stat-card blue">
+              <div className="st-stat-label">Active</div>
+              <div className="st-stat-value">{loading ? "—" : counts.active}</div>
+              <div className="st-stat-sub">In progress</div>
+            </div>
+            <div className="st-stat-card green">
+              <div className="st-stat-label">Action Needed</div>
+              <div className="st-stat-value">{loading ? "—" : counts.needAction}</div>
+              <div className="st-stat-sub">Accept issuance</div>
+            </div>
+            <div className="st-stat-card slate">
+              <div className="st-stat-label">Completed</div>
+              <div className="st-stat-value">{loading ? "—" : counts.completed}</div>
+              <div className="st-stat-sub">Returned / closed</div>
+            </div>
+          </div>
+
+          {/* Quick Actions */}
+          <div className="st-section-hd" style={{ marginTop: 0 }}>
+            <div className="st-section-title">Quick Actions</div>
+          </div>
+          <div className="st-qa-grid">
+            <div className="st-qa-card st-qa-indigo" onClick={() => navigate("/new-request")}>
+              <div className="st-qa-icon">📋</div>
+              <div className="st-qa-label">New Request</div>
+            </div>
+            <div className="st-qa-card st-qa-blue" onClick={() => navigate("/view-requests")}>
+              <div className="st-qa-icon">🔍</div>
+              <div className="st-qa-label">My Requests</div>
+            </div>
+            <div className="st-qa-card st-qa-amber" onClick={() => navigate("/history")}>
+              <div className="st-qa-icon">📜</div>
+              <div className="st-qa-label">History</div>
             </div>
           </div>
 
           {/* Charts */}
-          {rows.length > 0 && (
-            <div className="charts-grid" style={{ gridTemplateColumns: "1fr 1fr" }}>
-              <div className="chart-card">
-                <div className="chart-card-title">
-                  <span className="chart-icon">🥧</span> Request Status Breakdown
+          {!loading && (pieData.length > 0 || barData.length > 0) && (
+            <div className="st-chart-grid-2" style={{ marginBottom: 28 }}>
+              {pieData.length > 0 && (
+                <div className="st-chart-card">
+                  <div className="st-chart-title">Request Status Breakdown</div>
+                  <ResponsiveContainer width="100%" height={200}>
+                    <PieChart>
+                      <Pie data={pieData} cx="50%" cy="50%" outerRadius={74} dataKey="value">
+                        {pieData.map((_, i) => <Cell key={i} fill={PIE_COLORS[i % PIE_COLORS.length]} />)}
+                      </Pie>
+                      <Tooltip />
+                      <Legend iconSize={10} />
+                    </PieChart>
+                  </ResponsiveContainer>
                 </div>
-                <ResponsiveContainer width="100%" height={220}>
-                  <PieChart>
-                    <Pie data={pieData} cx="50%" cy="50%" outerRadius={80} dataKey="value" label={({ name, value }) => `${name}: ${value}`} labelLine={false}>
-                      {pieData.map((entry) => (
-                        <Cell key={entry.name} fill={STATUS_COLORS[entry.name] || "#94a3b8"} />
-                      ))}
-                    </Pie>
-                    <Tooltip />
-                    <Legend />
-                  </PieChart>
-                </ResponsiveContainer>
-              </div>
-
-              <div className="chart-card">
-                <div className="chart-card-title">
-                  <span className="chart-icon">📅</span> Monthly Request Activity
+              )}
+              {barData.length > 0 && (
+                <div className="st-chart-card">
+                  <div className="st-chart-title">Monthly Request Activity</div>
+                  <ResponsiveContainer width="100%" height={200}>
+                    <BarChart data={barData} margin={{ top: 4, right: 16, left: 0, bottom: 4 }}>
+                      <CartesianGrid strokeDasharray="3 3" stroke="#f1f5f9" />
+                      <XAxis dataKey="month" tick={{ fontSize: 11 }} />
+                      <YAxis allowDecimals={false} tick={{ fontSize: 11 }} />
+                      <Tooltip />
+                      <Bar dataKey="count" fill="#4f46e5" radius={[4, 4, 0, 0]} name="Requests" />
+                    </BarChart>
+                  </ResponsiveContainer>
                 </div>
-                <ResponsiveContainer width="100%" height={220}>
-                  <BarChart data={barData} margin={{ top: 5, right: 10, bottom: 5, left: 0 }}>
-                    <CartesianGrid strokeDasharray="3 3" stroke="#f1f5f9" />
-                    <XAxis dataKey="month" tick={{ fontSize: 12 }} />
-                    <YAxis allowDecimals={false} tick={{ fontSize: 12 }} />
-                    <Tooltip />
-                    <Bar dataKey="count" fill="#3b82f6" radius={[4, 4, 0, 0]} name="Requests" />
-                  </BarChart>
-                </ResponsiveContainer>
-              </div>
+              )}
             </div>
           )}
 
-          {/* Quick Actions */}
-          <div className="section-label">Quick Actions</div>
-          <div className="dashboard-quick-actions">
-            <button onClick={() => navigate("/new-request")}>
-              <AiOutlinePlus size={16} /> New Request
-            </button>
-            <button onClick={() => navigate("/view-requests")}>
-              <AiOutlineFileText size={16} /> View Requests
-            </button>
+          {/* Recent Requests */}
+          <div className="st-section-hd">
+            <div className="st-section-title">Recent Requests</div>
+            {rows.length > 8 && (
+              <button className="st-btn st-btn-ghost st-btn-sm" onClick={() => navigate("/view-requests")}>
+                View all →
+              </button>
+            )}
           </div>
 
-          {/* Recent Requests */}
-          <div className="section-card">
-            <div className="section-card-title">Recent Requests</div>
-            <table className="requests-table">
-              <thead>
-                <tr>
-                  <th>Equipment</th>
-                  <th>From Date</th>
-                  <th>Status</th>
-                </tr>
-              </thead>
-              <tbody>
-                {loading && (
-                  <tr><td colSpan="3" className="loading-state">Loading…</td></tr>
-                )}
-                {!loading && recent.length === 0 && (
-                  <tr><td colSpan="3" className="empty-state">No requests yet</td></tr>
-                )}
-                {recent.map((r) => (
-                  <tr key={r.requestId}>
-                    <td>{itemsPreview(r)}</td>
-                    <td>{r.fromDate || "–"}</td>
-                    <td>
-                      <span className={`status-pill ${(r.status || "").toLowerCase()}`}>
-                        {r.status?.replace(/_/g, " ") || "–"}
-                      </span>
-                    </td>
+          {loading ? (
+            <div className="st-empty">
+              <div className="st-empty-icon">⏳</div>
+              <div className="st-empty-text">Loading dashboard…</div>
+            </div>
+          ) : recent.length === 0 ? (
+            <div className="st-empty">
+              <div className="st-empty-icon">📭</div>
+              <div className="st-empty-text">No requests yet — submit your first equipment request</div>
+              <div style={{ marginTop: 14 }}>
+                <button className="st-btn st-btn-primary" onClick={() => navigate("/new-request")}>
+                  + New Request
+                </button>
+              </div>
+            </div>
+          ) : (
+            <div className="st-table-wrap">
+              <table className="st-table">
+                <thead>
+                  <tr>
+                    <th>Req #</th>
+                    <th>Equipment</th>
+                    <th>Lab</th>
+                    <th>Purpose</th>
+                    <th>From</th>
+                    <th>To</th>
+                    <th>Status</th>
                   </tr>
-                ))}
-              </tbody>
-            </table>
-          </div>
+                </thead>
+                <tbody>
+                  {recent.map(r => (
+                    <tr key={r.requestId}
+                      style={needsAction(r) ? { background: "#faf5ff" } : undefined}
+                    >
+                      <td className="st-id">#{r.requestId}</td>
+                      <td style={{ fontWeight: 600 }}>{itemsSummary(r)}</td>
+                      <td className="st-muted">{r.labName || "—"}</td>
+                      <td>
+                        {r.purpose && (
+                          <span className={`st-purpose ${String(r.purpose).toLowerCase()}`}>
+                            {r.purpose}
+                          </span>
+                        )}
+                      </td>
+                      <td className="st-muted">{r.fromDate || "—"}</td>
+                      <td className="st-muted">{r.toDate || "—"}</td>
+                      <td><span className={reqSpClass(r.status)}>{reqStatusLabel(r.status)}</span></td>
+                    </tr>
+                  ))}
+                </tbody>
+              </table>
+            </div>
+          )}
 
         </div>
-        <footer className="dashboard-footer">
-          Faculty of Engineering · University of Jaffna &nbsp;|&nbsp; © 2026 ERMS
-        </footer>
       </div>
     </div>
   )

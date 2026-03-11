@@ -1,428 +1,506 @@
-import { useMemo, useState, useEffect } from "react"
+import "../styles/studentTheme.css"
+import { useEffect, useMemo, useState } from "react"
 import { useNavigate } from "react-router-dom"
 import Sidebar from "../components/Sidebar"
 import Topbar from "../components/Topbar"
-import "../styles/studentDashboard.css"
-import "../styles/newRequestModal.css"
-import { CommonAPI, StudentRequestAPI } from "../api/api"
+import { AuthAPI, CommonAPI, StudentRequestAPI } from "../api/api"
 
-// Map UI purposes -> backend enum PurposeType
-const PURPOSE_MAP = {
-  Lab: "LABS",
-  Project: "PROJECT",
-  Research: "RESEARCH",
-}
+/*
+  NewRequestDTO (backend):
+    labId        : Long            — REQUIRED
+    lecturerId   : Long            — REQUIRED (student/staff; auto-assigned for lecturer/HOD)
+    purpose      : PurposeType     — LABS | LECTURE | RESEARCH | PROJECT | PERSONAL
+    purposeNote  : String optional
+    fromDate     : LocalDate       — YYYY-MM-DD
+    toDate       : LocalDate       — YYYY-MM-DD
+    items        : [{ equipmentId, quantity }]  — ALL items MUST belong to same lab
+
+  Flow:
+    1. AuthAPI.me()  → read user's department
+    2. CommonAPI.labs(dept)       → populate Lab dropdown
+    3. CommonAPI.lecturers(dept)  → populate Lecturer dropdown
+    4. On labId change → CommonAPI.equipmentByLab(labId) → Equipment dropdown
+    5. Cart: user picks equipment + qty and clicks "Add to Cart"
+       • Validation: all items must share the same labId
+       • Duplicate equipment → merge qty
+    6. Submit: POST /api/student/requests
+*/
+
+const PURPOSE_OPTIONS = ["LABS", "LECTURE", "RESEARCH", "PROJECT", "PERSONAL"]
 
 export default function NewRequest() {
   const navigate = useNavigate()
-
-  // Mobile sidebar
   const [sidebarOpen, setSidebarOpen] = useState(false)
 
-  // Modal open (overlay)
-  const [open, setOpen] = useState(true)
+  /* User / dept */
+  const [me,   setMe]   = useState(null)
+  const [dept, setDept] = useState("")
 
-  // One "item row" inputs (UI stays the same)
-  const [department, setDepartment] = useState("")
-  const [location, setLocation] = useState("")
-  const [equipment, setEquipment] = useState("")
-  const [quantity, setQuantity] = useState("")
+  /* Labs */
+  const [labs,        setLabs]        = useState([])
+  const [labId,       setLabId]       = useState("")
+  const [labsLoading, setLabsLoading] = useState(true)
 
-  // Fields (global)
-  const [purpose, setPurpose] = useState("")
+  /* Lecturers */
+  const [lecturers,  setLecturers]  = useState([])
   const [lecturerId, setLecturerId] = useState("")
-  const [fromDate, setFromDate] = useState("")
-  const [fromTime, setFromTime] = useState("") // UI only (backend stores only date)
-  const [toDate, setToDate] = useState("")
-  const [toTime, setToTime] = useState("") // UI only
-  const [description, setDescription] = useState("")
-  const [error, setError] = useState("")
-  const [submitting, setSubmitting] = useState(false)
 
-  // Items list (each item belongs to the selected lab)
-  // { labId, labName, department, equipmentId, equipmentName, quantity }
+  /* Equipment */
+  const [equipOptions, setEquipOptions] = useState([])
+  const [equipmentId,  setEquipmentId]  = useState("")
+  const [eqLoading,    setEqLoading]    = useState(false)
+  const [qty,          setQty]          = useState("1")
+
+  /* Request fields */
+  const [purpose,     setPurpose]     = useState("")
+  const [purposeNote, setPurposeNote] = useState("")
+  const [fromDate,    setFromDate]    = useState("")
+  const [toDate,      setToDate]      = useState("")
+
+  /* Cart: [{ equipmentId, equipmentName, itemType, quantity }] */
   const [items, setItems] = useState([])
 
-  // --- Dynamic labs/equipment (DB-driven) ---
-  const [labs, setLabs] = useState([]) // [{id,name,department,toId?}]
-  const [labsLoading, setLabsLoading] = useState(false)
-  const [equipList, setEquipList] = useState([]) // equipment rows for selected lab
-  const [equipLoading, setEquipLoading] = useState(false)
+  /* UI */
+  const [submitting, setSubmitting] = useState(false)
+  const [error,      setError]      = useState("")
+  const [success,    setSuccess]    = useState("")
 
-  const locations = useMemo(() => {
-    if (!department) return []
-    return labs
-      .filter((l) => String(l.department || "").toUpperCase() === String(department).toUpperCase())
-      .map((l) => ({ id: l.id, name: l.name }))
-  }, [department, labs])
-
-  const equipments = useMemo(() => {
-    return equipList.map((e) => ({ id: e.id, name: e.name, availableQty: e.availableQty }))
-  }, [equipList])
-
-  const purposes = useMemo(() => ["Lab", "Project", "Research"], [])
-
-  // Load labs list when department changes
+  /* ── Init: load user, labs, lecturers ── */
   useEffect(() => {
-    const loadLabs = async () => {
-      setLabs([])
-      setLocation("")
-      setEquipment("")
-      setEquipList([])
-      if (!department) return
+    const init = async () => {
       try {
         setLabsLoading(true)
-        const list = await CommonAPI.labs(department)
-        setLabs(Array.isArray(list) ? list : [])
-      } catch {
-        setLabs([])
+        const user = await AuthAPI.me()
+        setMe(user)
+        const department = user.department || ""
+        setDept(department)
+
+        const [allLabs, allLec] = await Promise.all([
+          CommonAPI.labs(department),
+          CommonAPI.lecturers(department),
+        ])
+        setLabs(Array.isArray(allLabs) ? allLabs : [])
+        setLecturers(Array.isArray(allLec) ? allLec : [])
+      } catch (e) {
+        setError(e?.message || "Failed to load form data")
       } finally {
         setLabsLoading(false)
       }
     }
-    loadLabs()
-  }, [department])
+    init()
+  }, [])
 
-  // Load equipment list when lab changes
+  /* ── Load equipment when lab changes ── */
   useEffect(() => {
-    const loadEquipment = async () => {
-      setEquipList([])
-      setEquipment("")
-      if (!location) return
+    if (!labId) { setEquipOptions([]); setEquipmentId(""); return }
+    const load = async () => {
       try {
-        setEquipLoading(true)
-        const list = await CommonAPI.equipmentByLab(location)
-        setEquipList(Array.isArray(list) ? list : [])
-      } catch {
-        setEquipList([])
+        setEqLoading(true)
+        setEquipOptions([])
+        setEquipmentId("")
+        const list = (await CommonAPI.equipmentByLab(labId)) || []
+        // backend activeOnly=true by default — only active equipment returned
+        setEquipOptions(list)
+        if (list.length) setEquipmentId(String(list[0].id))
+      } catch (e) {
+        setError(e?.message || "Failed to load equipment for this lab")
       } finally {
-        setEquipLoading(false)
+        setEqLoading(false)
       }
     }
-    loadEquipment()
-  }, [location])
+    load()
+  }, [labId])
 
-  // --- LECTURERS (dynamic from backend) ---
-  const [lecturers, setLecturers] = useState([])
-  const [lecturersLoading, setLecturersLoading] = useState(false)
+  const selectedEquip = useMemo(
+    () => equipOptions.find(e => String(e.id) === String(equipmentId)),
+    [equipOptions, equipmentId]
+  )
 
-  useEffect(() => {
-    const loadLecturers = async () => {
-      setLecturers([])
-      setLecturerId("")
-      if (!department) return
-      try {
-        setLecturersLoading(true)
-        const list = await CommonAPI.lecturers(department)
-        setLecturers(Array.isArray(list) ? list : [])
-      } catch {
-        setLecturers([])
-      } finally {
-        setLecturersLoading(false)
-      }
-    }
-    loadLecturers()
-  }, [department])
-
-  // Clear errors when changing selectors
-  useEffect(() => {
+  /* ── Cart actions ── */
+  const addToCart = () => {
     setError("")
-  }, [department, location, equipment])
+    if (!labId)       return setError("Please select a lab first.")
+    if (!equipmentId) return setError("Please select equipment.")
+    const q = parseInt(qty, 10)
+    if (!q || q <= 0) return setError("Quantity must be a positive number.")
 
-  useEffect(() => {
-    setError("")
-  }, [purpose])
-
-  // Close on ESC
-  useEffect(() => {
-    if (!open) return
-    const onKeyDown = (e) => {
-      if (e.key === "Escape") handleClose()
-    }
-    window.addEventListener("keydown", onKeyDown)
-    return () => window.removeEventListener("keydown", onKeyDown)
-    // eslint-disable-next-line react-hooks/exhaustive-deps
-  }, [open])
-
-  const handleClose = () => {
-    setOpen(false)
-    navigate(-1)
-  }
-
-  const clearItemInputs = () => {
-    setEquipment("")
-    setQuantity("")
-  }
-
-  const addItem = () => {
-    setError("")
-
-    if (!department) return setError("Please select a department first.")
-    if (!location) return setError("Please select a location first.")
-    if (!purpose) return setError("Please select purpose first.")
-    if (!equipment) return setError("Please select equipment.")
-
-    const qty = Number(quantity)
-    if (!quantity || !Number.isInteger(qty) || qty <= 0) {
-      return setError("Quantity must be a positive whole number.")
-    }
-
-    const labRow = labs.find((l) => String(l.id) === String(location))
-    if (!labRow) return setError("Selected lab not found. Please refresh.")
-    const eqRow = equipList.find((e) => String(e.id) === String(equipment))
-    if (!eqRow) return setError("Selected equipment not found. Please refresh.")
-
-    // IMPORTANT: One request has ONE lab_id in DB. So do not allow mixing labs in one request.
-    if (items.length > 0) {
-      const firstLabId = String(items[0].labId)
-      if (firstLabId !== String(labRow.id)) {
-        return setError("You can only add items from the same Location for one request.")
-      }
-    }
-
-    // Merge only if same equipment + same lab
-    setItems((prev) => {
-      const idx = prev.findIndex((i) => String(i.labId) === String(labRow.id) && String(i.equipmentId) === String(eqRow.id))
+    setItems(prev => {
+      const idx = prev.findIndex(it => String(it.equipmentId) === String(equipmentId))
       if (idx >= 0) {
-        const copy = [...prev]
-        const oldQty = Number(copy[idx].quantity)
-        copy[idx] = { ...copy[idx], quantity: String(oldQty + qty) }
-        return copy
+        // Merge quantity
+        return prev.map((it, i) => i === idx ? { ...it, quantity: it.quantity + q } : it)
       }
-      return [
-        ...prev,
-        {
-          department,
-          labId: labRow.id,
-          labName: labRow.name,
-          equipmentId: eqRow.id,
-          equipmentName: eqRow.name,
-          quantity: String(qty),
-        },
-      ]
+      return [...prev, {
+        equipmentId:   Number(equipmentId),
+        equipmentName: selectedEquip?.name || `Equipment #${equipmentId}`,
+        itemType:      selectedEquip?.itemType || "",
+        category:      selectedEquip?.category || "",
+        quantity:      q,
+      }]
     })
-
-    clearItemInputs()
+    setQty("1")
   }
 
-  const removeItem = (index) => {
-    setItems((prev) => prev.filter((_, i) => i !== index))
+  const removeItem    = (eid) => setItems(prev => prev.filter(it => String(it.equipmentId) !== String(eid)))
+  const updateItemQty = (eid, val) => {
+    const q = parseInt(val, 10)
+    if (!q || q <= 0) return
+    setItems(prev => prev.map(it => String(it.equipmentId) === String(eid) ? { ...it, quantity: q } : it))
   }
 
-  const validateBeforeSubmit = () => {
-    if (items.length === 0) return "Please add at least one equipment item."
-    if (!lecturerId) return "Please select lecturer."
-    if (!purpose) return "Please select purpose."
-
-    if (!fromDate || !fromTime) return "From date & time are required."
-    if (!toDate || !toTime) return "To date & time are required."
-
-    const fromISO = new Date(`${fromDate}T${fromTime}:00`).getTime()
-    const toISO = new Date(`${toDate}T${toTime}:00`).getTime()
-
-    if (Number.isNaN(fromISO) || Number.isNaN(toISO)) return "Invalid date/time."
-    if (fromISO >= toISO) return "To date/time must be after From date/time."
-
-    if (description && description.length > 300) {
-      return "Description must be 300 characters or less."
-    }
-
+  /* ── Validation ── */
+  const validate = () => {
+    if (!labId)       return "Please select a lab."
+    if (!lecturerId)  return "Please select a lecturer."
+    if (!purpose)     return "Please select a purpose."
+    if (!fromDate)    return "From date is required."
+    if (!toDate)      return "To date is required."
+    if (new Date(fromDate) > new Date(toDate)) return "To date must be on or after From date."
+    if (items.length === 0) return "Add at least one equipment item to the cart."
     return ""
   }
 
-  const handleSubmit = async (e) => {
-    e.preventDefault()
+  const canSubmit = useMemo(() =>
+    !!(labId && lecturerId && purpose && fromDate && toDate &&
+       new Date(fromDate) <= new Date(toDate) && items.length > 0)
+  , [labId, lecturerId, purpose, fromDate, toDate, items])
 
-    const msg = validateBeforeSubmit()
-    if (msg) {
-      setError(msg)
-      return
-    }
-
-    const labId = items?.[0]?.labId
-    if (!labId) return setError("Please add at least one equipment item.")
-
-    const lines = items.map((it) => ({ equipmentId: Number(it.equipmentId), quantity: Number(it.quantity) }))
+  /* ── Submit ── */
+  const handleSubmit = async () => {
+    setError(""); setSuccess("")
+    const msg = validate()
+    if (msg) return setError(msg)
 
     const payload = {
-      labId: Number(labId),
+      labId:      Number(labId),
       lecturerId: Number(lecturerId),
-      purpose: PURPOSE_MAP[purpose] || "LABS",
-      purposeNote: description?.trim() || "",
+      purpose,
+      purposeNote: purposeNote.trim() || null,
       fromDate,
       toDate,
-      items: lines,
+      items: items.map(it => ({ equipmentId: it.equipmentId, quantity: it.quantity })),
     }
 
     try {
       setSubmitting(true)
       await StudentRequestAPI.create(payload)
-      navigate("/student-dashboard")
-    } catch (err) {
-      setError(err?.message || "Failed to submit request")
+      setSuccess("Request submitted successfully! Awaiting lecturer approval.")
+      setItems([])
+      setPurpose(""); setPurposeNote(""); setFromDate(""); setToDate(""); setQty("1")
+      setLabId(""); setEquipmentId(""); setEquipOptions([])
+    } catch (e) {
+      setError(e?.message || "Failed to submit request")
     } finally {
       setSubmitting(false)
     }
   }
 
+  const disabled = submitting || labsLoading
+
   return (
     <div className="dashboard-container">
       <Sidebar isOpen={sidebarOpen} onClose={() => setSidebarOpen(false)} />
-
       <div className="main-content">
         <Topbar onMenuClick={() => setSidebarOpen(true)} />
-
         <div className="content">
-          {open && (
-            <div className="nrf-backdrop" onMouseDown={handleClose}>
-              <div className="nrf-modal" onMouseDown={(e) => e.stopPropagation()}>
-                <div className="nrf-header">
-                  <h3>New Request Form</h3>
-                </div>
 
-                <form className="nrf-body" onSubmit={handleSubmit}>
-                  {/* Top Inputs */}
-                  <div className="nrf-grid">
-                    <label className="nrf-label">Department</label>
-                    <select className="nrf-input" value={department} onChange={(e) => setDepartment(e.target.value)}>
-                      <option value="">-- Select Department --</option>
-                      <option value="CE">CE</option>
-                      <option value="EEE">EEE</option>
-                    </select>
-
-                    <label className="nrf-label">Location</label>
-                    <select
-                      className="nrf-input"
-                      value={location}
-                      onChange={(e) => setLocation(e.target.value)}
-                      disabled={!department || labsLoading}
-                    >
-                      <option value="">-- Select Location --</option>
-                      {locations.map((loc) => (
-                        <option key={loc.id} value={loc.id}>
-                          {loc.name}
-                        </option>
-                      ))}
-                    </select>
-
-                    <label className="nrf-label">Equipment</label>
-                    <select
-                      className="nrf-input"
-                      value={equipment}
-                      onChange={(e) => setEquipment(e.target.value)}
-                      disabled={!department || !location || equipLoading}
-                    >
-                      <option value="">-- Select Equipment --</option>
-                      {equipments.map((eq) => (
-                        <option key={eq.id} value={eq.id}>
-                          {eq.name}
-                        </option>
-                      ))}
-                    </select>
-
-                    <label className="nrf-label">Quantity</label>
-                    <input
-                      className="nrf-input"
-                      value={quantity}
-                      onChange={(e) => setQuantity(e.target.value)}
-                      placeholder="Qty"
-                      inputMode="numeric"
-                      disabled={!equipment}
-                    />
-
-                    <label className="nrf-label">Purpose</label>
-                    <select className="nrf-input" value={purpose} onChange={(e) => setPurpose(e.target.value)}>
-                      <option value="">-- Select Purpose --</option>
-                      {purposes.map((p) => (
-                        <option key={p} value={p}>
-                          {p}
-                        </option>
-                      ))}
-                    </select>
-                  </div>
-
-                  <div className="nrf-row-right">
-                    <button type="button" className="nrf-btn nrf-btn-add" onClick={addItem}>
-                      Add
-                    </button>
-                  </div>
-
-                  {/* Request List */}
-                  <div className="nrf-list">
-                    <div className="nrf-list-title">Request List</div>
-                    {items.length === 0 ? (
-                      <div className="nrf-empty">No items added.</div>
-                    ) : (
-                      <ul className="nrf-ul">
-                        {items.map((i, idx) => (
-                          <li key={`${i.department}-${i.equipmentId}-${i.labId}-${idx}`} className="nrf-li">
-                            <div>
-                              <div className="nrf-eq-name">{i.equipmentName}</div>
-                              <div className="nrf-eq-qty">
-                                Qty: {i.quantity} • {i.department} • {i.labName}
-                              </div>
-                            </div>
-                            <button type="button" className="nrf-btn nrf-btn-remove" onClick={() => removeItem(idx)}>
-                              Remove
-                            </button>
-                          </li>
-                        ))}
-                      </ul>
-                    )}
-                  </div>
-
-                  {/* Bottom Fields */}
-                  <div className="nrf-grid2">
-                    <label className="nrf-label">Lecturer Name</label>
-                    <select
-                      className="nrf-input"
-                      value={lecturerId}
-                      onChange={(e) => setLecturerId(e.target.value)}
-                      disabled={!department || lecturersLoading}
-                    >
-                      <option value="">-- Select Lecturer --</option>
-                      {lecturers.map((lec) => (
-                        <option key={lec.id} value={lec.id}>
-                          {lec.fullName}
-                        </option>
-                      ))}
-                    </select>
-
-                    <label className="nrf-label">From</label>
-                    <div className="nrf-inline">
-                      <input className="nrf-input" type="date" value={fromDate} onChange={(e) => setFromDate(e.target.value)} />
-                      <input className="nrf-input" type="time" value={fromTime} onChange={(e) => setFromTime(e.target.value)} />
-                    </div>
-
-                    <label className="nrf-label">To</label>
-                    <div className="nrf-inline">
-                      <input className="nrf-input" type="date" value={toDate} onChange={(e) => setToDate(e.target.value)} />
-                      <input className="nrf-input" type="time" value={toTime} onChange={(e) => setToTime(e.target.value)} />
-                    </div>
-
-                    <label className="nrf-label">Description</label>
-                    <textarea className="nrf-textarea" rows={3} value={description} onChange={(e) => setDescription(e.target.value)} />
-                  </div>
-
-                  {error && <div className="nrf-error">{error}</div>}
-
-                  <div className="nrf-footer">
-                    <button type="button" className="nrf-btn nrf-btn-cancel" onClick={handleClose}>
-                      Cancel
-                    </button>
-                    <button type="submit" className="nrf-btn nrf-btn-submit" disabled={submitting}>
-                      {submitting ? "Submitting..." : "Submit"}
-                    </button>
-                  </div>
-                </form>
+          {/* Page Header */}
+          <div className="st-page-header">
+            <div className="st-page-header-left">
+              <div className="st-page-title">New Equipment Request</div>
+              <div className="st-page-subtitle">
+                {me
+                  ? `${me.fullName}${me.regNo ? ` · ${me.regNo}` : ""}${dept ? ` · ${dept}` : ""}`
+                  : "Submit an equipment request for lecturer approval"
+                }
               </div>
             </div>
-          )}
-        </div>
+            <div className="st-page-actions">
+              <button className="st-btn st-btn-ghost" onClick={() => navigate("/student-dashboard")}>
+                ← Dashboard
+              </button>
+            </div>
+          </div>
 
-        <footer>
-          Faculty of Engineering | University of Jaffna <br />© Copyright 2026. All Rights Reserved - ERS
-        </footer>
+          {error   && <div className="st-alert st-alert-error">{error}</div>}
+          {success && (
+            <div className="st-alert st-alert-success">
+              {success}
+              <button
+                className="st-btn st-btn-success st-btn-sm"
+                style={{ marginLeft: 12, flexShrink: 0 }}
+                onClick={() => navigate("/view-requests")}
+              >
+                View My Requests
+              </button>
+            </div>
+          )}
+
+          {labsLoading ? (
+            <div className="st-empty">
+              <div className="st-empty-icon">⏳</div>
+              <div className="st-empty-text">Loading form data…</div>
+            </div>
+          ) : (
+            <>
+              {/* ── Section 1: Lab & Lecturer ── */}
+              <div className="st-form-card">
+                <div className="st-form-section-title">Lab & Lecturer</div>
+                <div className="st-form-grid st-form-grid-2">
+                  <div className="st-form-group">
+                    <label className="st-label">Lab *</label>
+                    <select
+                      className="st-select"
+                      value={labId}
+                      onChange={e => { setLabId(e.target.value); setError("") }}
+                      disabled={disabled}
+                    >
+                      <option value="">— Select Lab —</option>
+                      {labs.map(l => (
+                        <option key={l.id} value={String(l.id)}>
+                          {l.name}{l.department ? ` (${l.department})` : ""}
+                        </option>
+                      ))}
+                    </select>
+                    {!labsLoading && labs.length === 0 && (
+                      <span style={{ fontSize: 12, color: "var(--st-text-muted)", marginTop: 4 }}>
+                        No labs found for your department.
+                      </span>
+                    )}
+                  </div>
+                  <div className="st-form-group">
+                    <label className="st-label">Lecturer *</label>
+                    <select
+                      className="st-select"
+                      value={lecturerId}
+                      onChange={e => setLecturerId(e.target.value)}
+                      disabled={disabled}
+                    >
+                      <option value="">— Select Lecturer —</option>
+                      {lecturers.map(l => (
+                        <option key={l.id} value={String(l.id)}>
+                          {l.fullName}{l.email ? ` (${l.email})` : ""}
+                        </option>
+                      ))}
+                    </select>
+                  </div>
+                </div>
+              </div>
+
+              {/* ── Section 2: Request Details ── */}
+              <div className="st-form-card">
+                <div className="st-form-section-title">Request Details</div>
+                <div className="st-form-grid st-form-grid-2">
+                  <div className="st-form-group">
+                    <label className="st-label">Purpose *</label>
+                    <select
+                      className="st-select"
+                      value={purpose}
+                      onChange={e => setPurpose(e.target.value)}
+                      disabled={disabled}
+                    >
+                      <option value="">— Select Purpose —</option>
+                      {PURPOSE_OPTIONS.map(p => <option key={p} value={p}>{p}</option>)}
+                    </select>
+                  </div>
+                  <div className="st-form-group">
+                    <label className="st-label">Purpose Note (optional)</label>
+                    <input
+                      className="st-input"
+                      value={purposeNote}
+                      onChange={e => setPurposeNote(e.target.value)}
+                      placeholder="Any additional context…"
+                      disabled={disabled}
+                    />
+                  </div>
+                  <div className="st-form-group">
+                    <label className="st-label">From Date *</label>
+                    <input
+                      className="st-input"
+                      type="date"
+                      value={fromDate}
+                      onChange={e => setFromDate(e.target.value)}
+                      disabled={disabled}
+                    />
+                  </div>
+                  <div className="st-form-group">
+                    <label className="st-label">To Date *</label>
+                    <input
+                      className="st-input"
+                      type="date"
+                      value={toDate}
+                      min={fromDate || undefined}
+                      onChange={e => setToDate(e.target.value)}
+                      disabled={disabled}
+                    />
+                  </div>
+                </div>
+              </div>
+
+              {/* ── Section 3: Add Equipment ── */}
+              <div className="st-form-card">
+                <div className="st-form-section-title">Add Equipment to Cart</div>
+                <div className="st-form-grid st-form-grid-3" style={{ alignItems: "flex-end" }}>
+                  <div className="st-form-group">
+                    <label className="st-label">Equipment *</label>
+                    <select
+                      className="st-select"
+                      value={equipmentId}
+                      onChange={e => setEquipmentId(e.target.value)}
+                      disabled={disabled || !labId || eqLoading || equipOptions.length === 0}
+                    >
+                      {!labId         && <option value="">Select a lab first</option>}
+                      {labId && eqLoading && <option>Loading…</option>}
+                      {labId && !eqLoading && equipOptions.length === 0 &&
+                        <option value="">No active equipment in this lab</option>}
+                      {equipOptions.map(e => (
+                        <option key={e.id} value={String(e.id)}>
+                          {e.name}{e.availableQty != null ? ` (Avail: ${e.availableQty})` : ""}
+                        </option>
+                      ))}
+                    </select>
+                  </div>
+                  <div className="st-form-group">
+                    <label className="st-label">Quantity *</label>
+                    <input
+                      className="st-input"
+                      type="number"
+                      min="1"
+                      value={qty}
+                      onChange={e => setQty(e.target.value)}
+                      disabled={disabled || !equipmentId}
+                    />
+                  </div>
+                  <div>
+                    <button
+                      className="st-btn st-btn-primary"
+                      onClick={addToCart}
+                      disabled={disabled || !labId || !equipmentId}
+                    >
+                      + Add to Cart
+                    </button>
+                  </div>
+                </div>
+
+                {/* Equipment preview */}
+                {selectedEquip && (
+                  <div className="st-equip-info">
+                    <strong>{selectedEquip.name}</strong>
+                    {selectedEquip.category && <span style={{ marginLeft: 10, opacity: .8 }}>· {selectedEquip.category}</span>}
+                    {selectedEquip.itemType  && <span style={{ marginLeft: 10, opacity: .8 }}>· {String(selectedEquip.itemType)}</span>}
+                    {selectedEquip.availableQty != null && (
+                      <span style={{ marginLeft: 10, opacity: .8 }}>· Available qty: {selectedEquip.availableQty}</span>
+                    )}
+                    {selectedEquip.totalQty != null && (
+                      <span style={{ marginLeft: 10, opacity: .8 }}>· Total qty: {selectedEquip.totalQty}</span>
+                    )}
+                  </div>
+                )}
+              </div>
+
+              {/* ── Cart ── */}
+              <div className="st-section-hd" style={{ marginTop: 0 }}>
+                <div className="st-section-title">
+                  Request Cart
+                  <span style={{
+                    marginLeft: 8, fontSize: 11, fontWeight: 700,
+                    background: items.length ? "var(--st-indigo-pale)" : "var(--st-slate-100)",
+                    color: items.length ? "var(--st-indigo)" : "var(--st-slate-500)",
+                    padding: "2px 8px", borderRadius: 10,
+                  }}>
+                    {items.length} item{items.length !== 1 ? "s" : ""}
+                  </span>
+                </div>
+                {items.length > 0 && (
+                  <button
+                    className="st-btn st-btn-ghost st-btn-sm"
+                    onClick={() => setItems([])}
+                    disabled={submitting}
+                  >
+                    Clear Cart
+                  </button>
+                )}
+              </div>
+
+              <div className="st-cart">
+                <div className="st-cart-hd">
+                  <span>Equipment · Quantity · Actions</span>
+                  {items.length > 0 && (
+                    <span style={{ color: "var(--st-indigo)", fontStyle: "normal" }}>
+                      All from: {labs.find(l => String(l.id) === String(labId))?.name || "—"}
+                    </span>
+                  )}
+                </div>
+                {items.length === 0 && (
+                  <div className="st-cart-empty">
+                    No items added — select equipment above and click "Add to Cart"
+                  </div>
+                )}
+                {items.map(it => (
+                  <div key={it.equipmentId} className="st-cart-item">
+                    <div>
+                      <div className="st-cart-name">{it.equipmentName}</div>
+                      <div className="st-cart-meta">
+                        {it.itemType && <span style={{
+                          marginRight: 8, padding: "1px 7px", borderRadius: 4, fontSize: 10.5,
+                          fontWeight: 700, textTransform: "uppercase",
+                          background: String(it.itemType) === "RETURNABLE" ? "var(--st-green-pale)" : "var(--st-amber-pale)",
+                          color: String(it.itemType) === "RETURNABLE" ? "var(--st-green)" : "var(--st-amber)",
+                        }}>
+                          {String(it.itemType)}
+                        </span>}
+                        {it.category && <span>{it.category}</span>}
+                      </div>
+                    </div>
+                    <div style={{ display: "flex", alignItems: "center", gap: 8 }}>
+                      <input
+                        className="st-input"
+                        type="number"
+                        min="1"
+                        value={it.quantity}
+                        onChange={e => updateItemQty(it.equipmentId, e.target.value)}
+                        style={{ width: 72 }}
+                        disabled={submitting}
+                      />
+                      <span className="st-muted">units</span>
+                      <button
+                        className="st-btn st-btn-ghost st-btn-sm"
+                        onClick={() => removeItem(it.equipmentId)}
+                        disabled={submitting}
+                      >
+                        Remove
+                      </button>
+                    </div>
+                  </div>
+                ))}
+              </div>
+
+              {/* ── Submit row ── */}
+              {items.length > 0 && (
+                <div style={{ display: "flex", justifyContent: "flex-end", gap: 10, marginTop: 4 }}>
+                  <button
+                    className="st-btn st-btn-ghost"
+                    onClick={() => navigate("/student-dashboard")}
+                    disabled={submitting}
+                  >
+                    Cancel
+                  </button>
+                  <button
+                    className="st-btn st-btn-primary"
+                    onClick={handleSubmit}
+                    disabled={!canSubmit || submitting}
+                  >
+                    {submitting
+                      ? "Submitting…"
+                      : `Submit Request (${items.length} item${items.length !== 1 ? "s" : ""})`
+                    }
+                  </button>
+                </div>
+              )}
+            </>
+          )}
+
+        </div>
       </div>
     </div>
   )
