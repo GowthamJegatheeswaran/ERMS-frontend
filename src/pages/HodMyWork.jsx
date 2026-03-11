@@ -144,16 +144,15 @@ export default function HodMyWork() {
         <Topbar onMenuClick={() => setSidebarOpen(true)} />
         <div className="content">
 
-          {/* Header */}
-          <div className="hod-page-header">
-            <div>
-              <div className="hod-page-title">
-                Welcome back, {loading ? "…" : (user?.fullName || "HOD")}
-              </div>
-              <div className="hod-page-subtitle">
-                Dept: {user?.department || "–"} &nbsp;·&nbsp; Head of Department
-              </div>
+          {/* Welcome Banner */}
+          <div className="hod-welcome-banner">
+            <div className="hod-welcome-name">
+              Welcome back, {loading ? "…" : (user?.fullName || "HOD")}!
             </div>
+            <div className="hod-welcome-sub">
+              {user?.department ? `Dept: ${user.department} · ` : ""}Head of Department · Faculty of Engineering, University of Jaffna
+            </div>
+            <div className="hod-welcome-badge">🏛 HOD</div>
           </div>
 
           {error && <div className="hod-alert hod-alert-error">{error}</div>}

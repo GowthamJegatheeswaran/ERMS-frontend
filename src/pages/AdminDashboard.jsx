@@ -4,7 +4,7 @@ import Sidebar from "../components/Sidebar"
 import Topbar from "../components/Topbar"
 import { useEffect, useMemo, useState } from "react"
 import { useNavigate } from "react-router-dom"
-import { AdminAPI, AdminPurchaseAPI } from "../api/api"
+import { AdminAPI, AdminPurchaseAPI, AuthAPI } from "../api/api"
 import {
   BarChart, Bar, XAxis, YAxis, CartesianGrid, Tooltip,
   ResponsiveContainer, PieChart, Pie, Cell, Legend, LineChart, Line
@@ -32,6 +32,7 @@ function purchaseStatusPill(status) {
 export default function AdminDashboard() {
   const navigate = useNavigate()
   const [sidebarOpen, setSidebarOpen]   = useState(false)
+  const [user, setUser]                 = useState(null)
   const [departments, setDepartments]   = useState([])
   const [selectedDept, setSelectedDept] = useState("")
   const [allPurchases, setAllPurchases] = useState({})   // { deptName: [...] }
@@ -43,7 +44,8 @@ export default function AdminDashboard() {
     let alive = true
     ;(async () => {
       try {
-        const depts    = await AdminAPI.departments()
+        const [depts, me] = await Promise.all([AdminAPI.departments(), AuthAPI.me()])
+        if (alive) setUser(me)
         const deptList = Array.isArray(depts) ? depts : []
         const names    = deptList.map(d => d.name || d)
 
@@ -152,11 +154,15 @@ export default function AdminDashboard() {
         <Topbar onMenuClick={() => setSidebarOpen(true)} />
         <div className="content">
 
-          <div className="admin-page-header">
-            <div>
-              <div className="admin-page-title">Admin Dashboard</div>
-              <div className="admin-page-subtitle">System-wide overview — all departments</div>
+          {/* Welcome Banner */}
+          <div className="admin-welcome-banner">
+            <div className="admin-welcome-name">
+              Welcome, {loading ? "…" : (user?.fullName || "Administrator")}!
             </div>
+            <div className="admin-welcome-sub">
+              System Administrator · Faculty of Engineering, University of Jaffna
+            </div>
+            <div className="admin-welcome-badge">🛡 ADMIN</div>
           </div>
 
           {error && <div className="a-alert a-alert-error">{error}</div>}

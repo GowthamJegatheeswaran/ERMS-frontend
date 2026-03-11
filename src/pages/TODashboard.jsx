@@ -140,16 +140,15 @@ export default function TODashboard() {
         <Topbar onMenuClick={() => setSidebarOpen(true)} />
         <div className="content">
 
-          {/* Page Header */}
-          <div className="to-page-header">
-            <div>
-              <div className="to-page-title">
-                Welcome, {user?.fullName || "Technical Officer"}
-              </div>
-              <div className="to-page-subtitle">
-                Technical Officer Dashboard · Faculty of Engineering
-              </div>
+          {/* Welcome Banner */}
+          <div className="to-welcome-banner">
+            <div className="to-welcome-name">
+              Welcome, {user?.fullName || "Technical Officer"}!
             </div>
+            <div className="to-welcome-sub">
+              {user?.department ? `${user.department} · ` : ""}Technical Officer · Faculty of Engineering, University of Jaffna
+            </div>
+            <div className="to-welcome-badge">🔧 TECHNICAL OFFICER</div>
           </div>
 
           {error && <div className="to-alert to-alert-error">{error}</div>}

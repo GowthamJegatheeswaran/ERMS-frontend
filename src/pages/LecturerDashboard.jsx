@@ -124,15 +124,15 @@ export default function LecturerDashboard() {
         <Topbar onMenuClick={() => setSidebarOpen(true)} />
         <div className="content">
 
-          <div className="lt-page-header">
-            <div>
-              <div className="lt-page-title">
-                Welcome, {loading ? "…" : (user?.fullName || "Lecturer")}!
-              </div>
-              <div className="lt-page-subtitle">
-                {user?.department ? `${user.department} · ` : ""}Lecturer Portal
-              </div>
+          {/* Welcome Banner */}
+          <div className="lt-welcome-banner">
+            <div className="lt-welcome-name">
+              Welcome, {loading ? "…" : (user?.fullName || "Lecturer")}!
             </div>
+            <div className="lt-welcome-sub">
+              {user?.department ? `${user.department} · ` : ""}Lecturer Portal · Faculty of Engineering, University of Jaffna
+            </div>
+            <div className="lt-welcome-badge">🎓 LECTURER</div>
           </div>
 
           {error && <div className="lt-alert lt-alert-error">{error}</div>}
