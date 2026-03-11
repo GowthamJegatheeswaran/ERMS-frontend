@@ -1,106 +1,120 @@
 import "../styles/dashboard.css"
+import "../styles/toTheme.css"
 import Sidebar from "../components/Sidebar"
 import Topbar from "../components/Topbar"
 import { useEffect, useMemo, useState } from "react"
 import { useNavigate } from "react-router-dom"
 import { ToRequestAPI, ToPurchaseAPI, AuthAPI } from "../api/api"
 import {
-  AiOutlineFileText, AiOutlineClockCircle,
-  AiOutlinePlus, AiOutlineCheckCircle,
-  AiOutlineHourglass, AiOutlineAudit
+  AiOutlineInbox, AiOutlineEye, AiOutlinePlus,
+  AiOutlineShoppingCart, AiOutlineHistory, AiOutlineClockCircle
 } from "react-icons/ai"
 import {
-  BarChart, Bar, XAxis, YAxis, CartesianGrid, Tooltip,
-  ResponsiveContainer, PieChart, Pie, Cell, Legend
+  PieChart, Pie, Cell, Tooltip, ResponsiveContainer, Legend,
+  BarChart, Bar, XAxis, YAxis, CartesianGrid
 } from "recharts"
 
-const PIE_COLORS = ["#f59e0b", "#3b82f6", "#22c55e", "#a855f7", "#ef4444", "#06b6d4"]
+/* ── RequestItemStatus → pill helper ── */
+function itemStatusPill(s) {
+  s = String(s || "").toUpperCase()
+  if (s === "PENDING_LECTURER_APPROVAL")       return { label: "Pending Approval",  cls: "to-sp-pending-lec" }
+  if (s === "APPROVED_BY_LECTURER")            return { label: "Ready to Issue",    cls: "to-sp-approved" }
+  if (s === "REJECTED_BY_LECTURER")            return { label: "Rejected",          cls: "to-sp-rejected" }
+  if (s === "WAITING_TO_ISSUE")                return { label: "Waiting",           cls: "to-sp-waiting" }
+  if (s === "ISSUED_PENDING_REQUESTER_ACCEPT") return { label: "Issued – Confirm",  cls: "to-sp-issued-pend" }
+  if (s === "ISSUED_CONFIRMED")                return { label: "Issued ✓",          cls: "to-sp-issued" }
+  if (s === "RETURN_REQUESTED")                return { label: "Return Requested",  cls: "to-sp-return-req" }
+  if (s === "RETURN_VERIFIED")                 return { label: "Returned",          cls: "to-sp-returned" }
+  if (s === "DAMAGED_REPORTED")                return { label: "Damaged",           cls: "to-sp-damaged" }
+  return { label: s.replace(/_/g, " "), cls: "to-sp-slate" }
+}
 
-const ACTIVE_STATUSES = new Set([
-  "APPROVED_BY_LECTURER", "TO_PROCESSING",
-  "ISSUED_PENDING_STUDENT_ACCEPT", "ISSUED_CONFIRMED", "RETURNED_PENDING_TO_VERIFY",
+/* Items TO needs to act on or is currently tracking */
+const ACTIVE_ITEM_STATUSES = new Set([
+  "APPROVED_BY_LECTURER", "WAITING_TO_ISSUE",
+  "ISSUED_PENDING_REQUESTER_ACCEPT", "ISSUED_CONFIRMED", "RETURN_REQUESTED"
 ])
 
-function itemStatusLabel(s) {
-  if (!s) return "Other"
-  const sl = s.toLowerCase()
-  if (sl.includes("waiting")) return "Waiting"
-  if (sl.includes("issued_pending")) return "Pending Accept"
-  if (sl.includes("issued_confirmed")) return "Confirmed"
-  if (sl.includes("return_requested")) return "Return Req."
-  if (sl.includes("return_verified")) return "Returned"
-  if (sl.includes("approved")) return "Approved"
-  if (sl.includes("rejected")) return "Rejected"
-  return "Other"
-}
+const PIE_COLORS = ["#d97706", "#2563eb", "#16a34a", "#7c3aed", "#ea580c", "#0891b2", "#dc2626"]
 
 export default function TODashboard() {
   const navigate = useNavigate()
   const [sidebarOpen, setSidebarOpen] = useState(false)
-  const [rows, setRows] = useState([])
-  const [purchases, setPurchases] = useState([])
-  const [user, setUser] = useState(null)
-  const [loading, setLoading] = useState(true)
-  const [error, setError] = useState("")
+  const [rows,        setRows]        = useState([])
+  const [purchases,   setPurchases]   = useState([])
+  const [user,        setUser]        = useState(null)
+  const [loading,     setLoading]     = useState(true)
+  const [error,       setError]       = useState("")
 
   useEffect(() => {
-    const load = async () => {
+    let alive = true
+    ;(async () => {
       try {
         const [list, pList, me] = await Promise.all([
           ToRequestAPI.all(),
           ToPurchaseAPI.my().catch(() => []),
           AuthAPI.me(),
         ])
+        if (!alive) return
         setRows(Array.isArray(list) ? list : [])
         setPurchases(Array.isArray(pList) ? pList : [])
         setUser(me)
       } catch (e) {
-        setError(e?.message || "Failed to load")
+        if (alive) setError(e?.message || "Failed to load dashboard data")
       } finally {
-        setLoading(false)
+        if (alive) setLoading(false)
       }
-    }
-    load()
+    })()
+    return () => { alive = false }
   }, [])
 
-  // Flat active items
-  const assigned = useMemo(() => {
+  /* Flatten items the TO is currently tracking */
+  const activeItems = useMemo(() => {
     const out = []
     for (const r of rows) {
-      if (!ACTIVE_STATUSES.has(String(r.status))) continue
-      for (const it of (r.items || [])) out.push({ ...r, _item: it })
+      for (const it of (Array.isArray(r.items) ? r.items : [])) {
+        if (ACTIVE_ITEM_STATUSES.has(it.itemStatus)) {
+          out.push({ ...r, _item: it })
+        }
+      }
     }
     return out.sort((a, b) => (b.requestId || 0) - (a.requestId || 0))
   }, [rows])
 
-  const counts = useMemo(() => ({
-    active: assigned.length,
-    pendingIssue: rows.filter(r => r.status === "APPROVED_BY_LECTURER" || r.status === "TO_PROCESSING").length,
-    pendingReturn: rows.filter(r => r.status === "RETURNED_PENDING_TO_VERIFY").length,
-    purchases: purchases.length,
-  }), [assigned, rows, purchases])
+  /* Dashboard counts */
+  const counts = useMemo(() => {
+    let readyToIssue = 0, waiting = 0, pendingReturn = 0, issuedConfirmed = 0
+    for (const r of rows) {
+      for (const it of (Array.isArray(r.items) ? r.items : [])) {
+        if (it.itemStatus === "APPROVED_BY_LECTURER")            readyToIssue++
+        if (it.itemStatus === "WAITING_TO_ISSUE")                waiting++
+        if (it.itemStatus === "RETURN_REQUESTED")                pendingReturn++
+        if (it.itemStatus === "ISSUED_CONFIRMED")                issuedConfirmed++
+      }
+    }
+    return { readyToIssue, waiting, pendingReturn, issuedConfirmed, purchases: purchases.length }
+  }, [rows, purchases])
 
-  // Pie: item status breakdown
+  /* Pie: item status breakdown */
   const pieData = useMemo(() => {
     const map = {}
-    for (const { _item } of assigned) {
-      const label = itemStatusLabel(_item?.itemStatus)
+    for (const { _item } of activeItems) {
+      const { label } = itemStatusPill(_item.itemStatus)
       map[label] = (map[label] || 0) + 1
     }
     return Object.entries(map).map(([name, value]) => ({ name, value }))
-  }, [assigned])
+  }, [activeItems])
 
-  // Bar: requests per lab
-  const labBarData = useMemo(() => {
+  /* Bar: requests per lab */
+  const labBar = useMemo(() => {
     const map = {}
     for (const r of rows) {
       const lab = r.labName || "Unknown"
       map[lab] = (map[lab] || 0) + 1
     }
     return Object.entries(map)
-      .sort(([, a], [, b]) => b - a)
-      .slice(0, 6)
-      .map(([name, count]) => ({ name: name.length > 12 ? name.slice(0, 12) + "…" : name, count }))
+      .sort(([, a], [, b]) => b - a).slice(0, 6)
+      .map(([name, count]) => ({ name: name.length > 14 ? name.slice(0, 14) + "…" : name, count }))
   }, [rows])
 
   return (
@@ -110,60 +124,106 @@ export default function TODashboard() {
         <Topbar onMenuClick={() => setSidebarOpen(true)} />
         <div className="content">
 
-          <h2 className="welcome">Welcome, {user?.fullName || "Technical Officer"}!</h2>
-          {error && <div className="alert alert-error">{error}</div>}
+          {/* Page Header */}
+          <div className="to-page-header">
+            <div>
+              <div className="to-page-title">
+                Welcome back, {user?.fullName || "Technical Officer"}
+              </div>
+              <div className="to-page-subtitle">
+                {user?.department ? `${user.department} · ` : ""}Faculty of Engineering, University of Jaffna
+              </div>
+            </div>
+          </div>
 
-          {/* Summary Cards */}
-          <div className="summary-grid">
-            <div className="summary-card total">
-              <div className="card-icon"><AiOutlineAudit size={22} /></div>
-              <div className="card-info"><h4>Active Items</h4><p>{counts.active}</p></div>
+          {error && <div className="to-alert to-alert-error">{error}</div>}
+
+          {/* Stat Cards */}
+          <div className="to-stat-grid">
+            <div className="to-stat-card amber">
+              <div className="to-stat-label">Ready to Issue</div>
+              <div className="to-stat-value">{loading ? "–" : counts.readyToIssue}</div>
+              <div className="to-stat-sub">Items approved by lecturer</div>
             </div>
-            <div className="summary-card pending">
-              <div className="card-icon"><AiOutlineHourglass size={22} /></div>
-              <div className="card-info"><h4>Pending Issue</h4><p>{counts.pendingIssue}</p></div>
+            <div className="to-stat-card purple">
+              <div className="to-stat-label">Waiting</div>
+              <div className="to-stat-value">{loading ? "–" : counts.waiting}</div>
+              <div className="to-stat-sub">Stock unavailable</div>
             </div>
-            <div className="summary-card processing">
-              <div className="card-icon"><AiOutlineClockCircle size={22} /></div>
-              <div className="card-info"><h4>Pending Return</h4><p>{counts.pendingReturn}</p></div>
+            <div className="to-stat-card orange">
+              <div className="to-stat-label">Pending Return</div>
+              <div className="to-stat-value">{loading ? "–" : counts.pendingReturn}</div>
+              <div className="to-stat-sub">Verify returns</div>
             </div>
-            <div className="summary-card issued">
-              <div className="card-icon"><AiOutlineFileText size={22} /></div>
-              <div className="card-info"><h4>My Purchases</h4><p>{counts.purchases}</p></div>
+            <div className="to-stat-card teal">
+              <div className="to-stat-label">Issued & Active</div>
+              <div className="to-stat-value">{loading ? "–" : counts.issuedConfirmed}</div>
+              <div className="to-stat-sub">With requesters</div>
+            </div>
+            <div className="to-stat-card blue">
+              <div className="to-stat-label">My Purchases</div>
+              <div className="to-stat-value">{loading ? "–" : counts.purchases}</div>
+            </div>
+          </div>
+
+          {/* Quick Actions */}
+          <div className="to-section-hd">
+            <span className="to-section-title">Quick Actions</span>
+          </div>
+          <div className="to-qa-grid">
+            <div className="to-qa-card to-qa-amber" onClick={() => navigate("/to-approval-requests")}>
+              <div className="to-qa-icon"><AiOutlineInbox /></div>
+              <div className="to-qa-label">
+                Approval Queue{counts.readyToIssue > 0 ? ` (${counts.readyToIssue})` : ""}
+              </div>
+            </div>
+            <div className="to-qa-card to-qa-blue" onClick={() => navigate("/to-view-requests")}>
+              <div className="to-qa-icon"><AiOutlineEye /></div>
+              <div className="to-qa-label">View All Requests</div>
+            </div>
+            <div className="to-qa-card to-qa-green" onClick={() => navigate("/to-purchase-new")}>
+              <div className="to-qa-icon"><AiOutlinePlus /></div>
+              <div className="to-qa-label">New Purchase</div>
+            </div>
+            <div className="to-qa-card to-qa-teal" onClick={() => navigate("/to-purchase")}>
+              <div className="to-qa-icon"><AiOutlineShoppingCart /></div>
+              <div className="to-qa-label">My Purchases</div>
+            </div>
+            <div className="to-qa-card to-qa-purple" onClick={() => navigate("/to-history")}>
+              <div className="to-qa-icon"><AiOutlineHistory /></div>
+              <div className="to-qa-label">History</div>
             </div>
           </div>
 
           {/* Charts */}
-          {(pieData.length > 0 || labBarData.length > 0) && (
-            <div className="charts-grid" style={{ gridTemplateColumns: "1fr 1fr" }}>
+          {!loading && (pieData.length > 0 || labBar.length > 0) && (
+            <div className="to-chart-grid-2">
               {pieData.length > 0 && (
-                <div className="chart-card">
-                  <div className="chart-card-title">
-                    <span className="chart-icon">🥧</span> Active Item Status
-                  </div>
+                <div className="to-chart-card">
+                  <div className="to-chart-title">Active Items — Status Breakdown</div>
                   <ResponsiveContainer width="100%" height={210}>
                     <PieChart>
-                      <Pie data={pieData} cx="50%" cy="50%" outerRadius={75} dataKey="value">
+                      <Pie data={pieData} cx="50%" cy="50%" innerRadius={52} outerRadius={80}
+                        dataKey="value" paddingAngle={3}>
                         {pieData.map((_, i) => <Cell key={i} fill={PIE_COLORS[i % PIE_COLORS.length]} />)}
                       </Pie>
                       <Tooltip />
-                      <Legend />
+                      <Legend iconType="circle" iconSize={9} wrapperStyle={{ fontSize: 11 }} />
                     </PieChart>
                   </ResponsiveContainer>
                 </div>
               )}
-              {labBarData.length > 0 && (
-                <div className="chart-card">
-                  <div className="chart-card-title">
-                    <span className="chart-icon">🏛</span> Requests by Lab
-                  </div>
+              {labBar.length > 0 && (
+                <div className="to-chart-card">
+                  <div className="to-chart-title">Requests by Lab</div>
                   <ResponsiveContainer width="100%" height={210}>
-                    <BarChart data={labBarData} layout="vertical" margin={{ top: 5, right: 20, left: 0, bottom: 5 }}>
+                    <BarChart data={labBar} layout="vertical"
+                      margin={{ top: 4, right: 20, bottom: 4, left: 0 }}>
                       <CartesianGrid strokeDasharray="3 3" stroke="#f1f5f9" horizontal={false} />
                       <XAxis type="number" allowDecimals={false} tick={{ fontSize: 11 }} />
-                      <YAxis dataKey="name" type="category" tick={{ fontSize: 11 }} width={85} />
+                      <YAxis dataKey="name" type="category" tick={{ fontSize: 11 }} width={110} />
                       <Tooltip />
-                      <Bar dataKey="count" fill="#3b82f6" radius={[0, 4, 4, 0]} name="Requests" />
+                      <Bar dataKey="count" fill="#2563eb" radius={[0, 4, 4, 0]} name="Requests" />
                     </BarChart>
                   </ResponsiveContainer>
                 </div>
@@ -171,69 +231,64 @@ export default function TODashboard() {
             </div>
           )}
 
-          {/* Quick Actions */}
-          <div className="section-label">Quick Actions</div>
-          <div className="dashboard-quick-actions">
-            <button onClick={() => navigate("/to-approval-requests")}>
-              <AiOutlineFileText size={16} /> Approval Requests
-            </button>
-            <button onClick={() => navigate("/to-purchase-new")}>
-              <AiOutlinePlus size={16} /> New Purchase
-            </button>
-            <button onClick={() => navigate("/to-history")}>
-              <AiOutlineClockCircle size={16} /> History
-            </button>
+          {/* Active Items Preview Table */}
+          <div className="to-section-hd">
+            <span className="to-section-title">
+              Active Items
+              {activeItems.length > 0 && (
+                <span style={{ background: "#fef3c7", color: "#b45309", padding: "2px 8px",
+                  borderRadius: 20, fontSize: 11, fontWeight: 700 }}>
+                  {activeItems.length}
+                </span>
+              )}
+            </span>
+            {activeItems.length > 6 && (
+              <button className="to-btn to-btn-ghost to-btn-sm"
+                onClick={() => navigate("/to-approval-requests")}>
+                View all →
+              </button>
+            )}
           </div>
-
-          {/* Active Items Table */}
-          <div className="section-card">
-            <div className="section-card-title">Active Equipment Items</div>
-            <table className="requests-table">
+          <div className="to-table-wrap">
+            <table className="to-table">
               <thead>
                 <tr>
-                  <th>#</th>
-                  <th>Requester</th>
-                  <th>Lab</th>
-                  <th>Equipment</th>
-                  <th>From</th>
-                  <th>Item Status</th>
+                  <th>#ID</th><th>Requester</th><th>Lab</th>
+                  <th>Equipment</th><th>From</th><th>Item Status</th>
                 </tr>
               </thead>
               <tbody>
-                {loading && <tr><td colSpan="6" className="loading-state">Loading…</td></tr>}
-                {!loading && assigned.length === 0 && <tr><td colSpan="6" className="empty-state">No active items</td></tr>}
-                {assigned.slice(0, 8).map((r) => {
+                {loading && (
+                  <tr><td colSpan="6" style={{ textAlign: "center", padding: 32, color: "var(--to-text-muted)" }}>Loading…</td></tr>
+                )}
+                {!loading && activeItems.length === 0 && (
+                  <tr><td colSpan="6" style={{ textAlign: "center", padding: 32, color: "var(--to-text-muted)" }}>No active items</td></tr>
+                )}
+                {!loading && activeItems.slice(0, 8).map(r => {
                   const it = r._item
+                  const { label, cls } = itemStatusPill(it.itemStatus)
                   return (
-                    <tr key={`${r.requestId}-${it?.requestItemId}`}>
-                      <td style={{ color: "#94a3b8" }}>#{r.requestId}</td>
-                      <td>{r.requesterFullName || r.requesterRegNo || "–"}</td>
-                      <td>{r.labName || "–"}</td>
-                      <td>{it?.equipmentName || "–"} × {it?.quantity || "–"}</td>
-                      <td>{r.fromDate || "–"}</td>
-                      <td>
-                        <span className={`status-pill ${(it?.itemStatus || "").toLowerCase()}`}>
-                          {it?.itemStatus?.replace(/_/g, " ") || "–"}
-                        </span>
+                    <tr key={`${r.requestId}-${it.requestItemId}`}>
+                      <td className="to-id">#{r.requestId}</td>
+                      <td style={{ fontWeight: 600 }}>
+                        {r.requesterFullName || "–"}
+                        {r.requesterRegNo && <div className="to-muted">{r.requesterRegNo}</div>}
                       </td>
+                      <td>{r.labName || "–"}</td>
+                      <td>
+                        <span style={{ fontWeight: 600 }}>{it.equipmentName || "–"}</span>
+                        <span className="to-muted"> ×{it.quantity}</span>
+                      </td>
+                      <td className="to-muted">{r.fromDate || "–"}</td>
+                      <td><span className={`to-sp ${cls}`}>{label}</span></td>
                     </tr>
                   )
                 })}
               </tbody>
             </table>
-            {assigned.length > 8 && (
-              <div style={{ textAlign: "center", marginTop: 12 }}>
-                <button className="btn-outline" onClick={() => navigate("/to-approval-requests")}>
-                  View all {assigned.length} items
-                </button>
-              </div>
-            )}
           </div>
 
         </div>
-        <footer className="dashboard-footer">
-          Faculty of Engineering · University of Jaffna &nbsp;|&nbsp; © 2026 ERMS
-        </footer>
       </div>
     </div>
   )
