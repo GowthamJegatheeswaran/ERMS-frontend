@@ -1,99 +1,149 @@
 import "../styles/dashboard.css"
+import "../styles/adminTheme.css"
 import Sidebar from "../components/Sidebar"
 import Topbar from "../components/Topbar"
 import { useEffect, useMemo, useState } from "react"
 import { useNavigate } from "react-router-dom"
 import { AdminAPI, AdminPurchaseAPI } from "../api/api"
 import {
-  AiOutlineTeam, AiOutlineUser, AiOutlineFileText,
-  AiOutlineShoppingCart, AiOutlineCheckCircle, AiOutlineCloseCircle
-} from "react-icons/ai"
-import {
   BarChart, Bar, XAxis, YAxis, CartesianGrid, Tooltip,
-  ResponsiveContainer, PieChart, Pie, Cell, Legend
+  ResponsiveContainer, PieChart, Pie, Cell, Legend, LineChart, Line
 } from "recharts"
+import {
+  AiOutlineTeam, AiOutlineUser, AiOutlineFileText,
+  AiOutlineShoppingCart, AiOutlineBarChart, AiOutlineHistory,
+  AiOutlineCheckCircle, AiOutlineCloseCircle, AiOutlineClockCircle
+} from "react-icons/ai"
 
-const DEPT_COLORS = ["#3b82f6", "#6366f1", "#22c55e", "#f59e0b", "#ef4444", "#06b6d4"]
+const COLORS = ["#2563eb", "#16a34a", "#d97706", "#dc2626", "#7c3aed", "#0891b2"]
+
+/* Map backend purchase status → semantic label + pill class */
+function purchaseStatusPill(status) {
+  const s = String(status || "").toUpperCase()
+  if (s === "SUBMITTED_TO_HOD")  return { label: "Submitted to HOD", cls: "a-sp-amber" }
+  if (s === "APPROVED_BY_HOD")   return { label: "Approved by HOD",  cls: "a-sp-purple" }
+  if (s === "REJECTED_BY_HOD")   return { label: "Rejected by HOD",  cls: "a-sp-red" }
+  if (s === "ISSUED_BY_ADMIN")   return { label: "Issued by Admin",   cls: "a-sp-blue" }
+  if (s === "REJECTED_BY_ADMIN") return { label: "Rejected by Admin", cls: "a-sp-red" }
+  if (s === "RECEIVED_BY_HOD")   return { label: "Received by HOD",  cls: "a-sp-green" }
+  return { label: s.replace(/_/g, " ") || "–", cls: "a-sp-slate" }
+}
 
 export default function AdminDashboard() {
   const navigate = useNavigate()
-  const [sidebarOpen, setSidebarOpen] = useState(false)
-  const [departments, setDepartments] = useState([])
+  const [sidebarOpen, setSidebarOpen]   = useState(false)
+  const [departments, setDepartments]   = useState([])
   const [selectedDept, setSelectedDept] = useState("")
-  const [allPurchases, setAllPurchases] = useState({}) // { dept: [...] }
-  const [userCounts, setUserCounts] = useState({})
-  const [loading, setLoading] = useState(true)
-  const [error, setError] = useState("")
+  const [allPurchases, setAllPurchases] = useState({})   // { deptName: [...] }
+  const [userCounts, setUserCounts]     = useState({})   // { deptName: number }
+  const [loading, setLoading]           = useState(true)
+  const [error, setError]               = useState("")
 
   useEffect(() => {
-    const load = async () => {
+    let alive = true
+    ;(async () => {
       try {
-        const depts = await AdminAPI.departments()
+        const depts    = await AdminAPI.departments()
         const deptList = Array.isArray(depts) ? depts : []
-        setDepartments(deptList)
-        if (deptList.length) setSelectedDept(deptList[0].name || deptList[0])
+        const names    = deptList.map(d => d.name || d)
 
-        // Load purchases + user counts for each department
-        const purchaseMap = {}
-        const userMap = {}
-        await Promise.all(
-          deptList.map(async (d) => {
-            const name = d.name || d
-            try {
-              const purchases = await AdminPurchaseAPI.historyByDept(name)
-              purchaseMap[name] = Array.isArray(purchases) ? purchases : []
-            } catch { purchaseMap[name] = [] }
-            try {
-              const users = await AdminAPI.departmentUsers(name)
-              userMap[name] = Array.isArray(users) ? users.length : 0
-            } catch { userMap[name] = 0 }
-          })
-        )
+        const [purchaseMap, userMap] = [{}, {}]
+        await Promise.all(names.map(async name => {
+          try {
+            const p = await AdminPurchaseAPI.historyByDept(name)
+            purchaseMap[name] = Array.isArray(p) ? p : []
+          } catch { purchaseMap[name] = [] }
+          try {
+            const u = await AdminAPI.departmentUsers(name)
+            const arr = Array.isArray(u) ? u : (Array.isArray(u?.hods) ? [
+              ...u.hods, ...u.tos, ...u.lecturers, ...u.staff, ...u.students
+            ] : [])
+            userMap[name] = arr.length
+          } catch { userMap[name] = 0 }
+        }))
+
+        if (!alive) return
+        setDepartments(deptList)
+        setSelectedDept(names[0] || "")
         setAllPurchases(purchaseMap)
         setUserCounts(userMap)
       } catch (e) {
-        setError(e?.message || "Failed to load")
+        if (alive) setError(e?.message || "Failed to load")
       } finally {
-        setLoading(false)
+        if (alive) setLoading(false)
       }
-    }
-    load()
+    })()
+    return () => { alive = false }
   }, [])
 
-  // Counts for selected department (uses real backend enum strings)
-  const deptCounts = useMemo(() => {
-    const pList = allPurchases[selectedDept] || []
-    // BUG FIX: was using mock status strings ("PendingAdmin") — now uses real enums
-    const pending  = pList.filter(p => p.status === "SUBMITTED_TO_HOD" || p.status === "APPROVED_BY_HOD").length
-    const approved = pList.filter(p => p.status === "ISSUED_BY_ADMIN" || p.status === "RECEIVED_BY_HOD").length
-    const rejected = pList.filter(p => p.status === "REJECTED_BY_HOD" || p.status === "REJECTED_BY_ADMIN").length
-    return { pending, approved, rejected, total: pList.length }
-  }, [allPurchases, selectedDept])
-
-  // Bar chart: purchase count per department
-  const deptBarData = useMemo(() =>
-    departments.map((d) => {
-      const name = d.name || d
-      const pList = allPurchases[name] || []
-      return {
-        name: name.length > 8 ? name.slice(0, 8) + "…" : name,
-        fullName: name,
-        purchases: pList.length,
-        users: userCounts[name] || 0,
+  /* totals across all departments */
+  const totals = useMemo(() => {
+    let pending = 0, approved = 0, rejected = 0, total = 0, users = 0
+    for (const [, list] of Object.entries(allPurchases)) {
+      for (const p of list) {
+        total++
+        const s = String(p.status || "").toUpperCase()
+        if (s === "APPROVED_BY_HOD")                           pending++
+        if (s === "ISSUED_BY_ADMIN" || s === "RECEIVED_BY_HOD") approved++
+        if (s === "REJECTED_BY_ADMIN" || s === "REJECTED_BY_HOD") rejected++
       }
+    }
+    for (const v of Object.values(userCounts)) users += v
+    return { pending, approved, rejected, total, users, depts: departments.length }
+  }, [allPurchases, userCounts, departments])
+
+  /* selected dept purchases */
+  const deptPurchases = useMemo(() =>
+    [...(allPurchases[selectedDept] || [])].sort((a, b) => (b.id || 0) - (a.id || 0))
+  , [allPurchases, selectedDept])
+
+  /* bar: purchases + users per dept */
+  const deptBar = useMemo(() =>
+    departments.map(d => {
+      const n = d.name || d
+      return { name: n.length > 10 ? n.slice(0, 10) + "…" : n, fullName: n,
+        purchases: (allPurchases[n] || []).length, users: userCounts[n] || 0 }
     })
   , [departments, allPurchases, userCounts])
 
-  // Pie: purchase status breakdown for selected dept
-  const purchasePieData = useMemo(() => {
-    const pList = allPurchases[selectedDept] || []
-    const map = {}
-    for (const p of pList) {
-      const s = p.status || "Unknown"
-      map[s] = (map[s] || 0) + 1
+  /* pie: purchase status for selected dept */
+  const statusPie = useMemo(() => {
+    const m = {}
+    for (const p of deptPurchases) {
+      const { label } = purchaseStatusPill(p.status)
+      m[label] = (m[label] || 0) + 1
     }
-    return Object.entries(map).map(([name, value]) => ({ name: name.replace(/_/g, " "), value }))
-  }, [allPurchases, selectedDept])
+    return Object.entries(m).map(([name, value]) => ({ name, value }))
+  }, [deptPurchases])
+
+  /* line: monthly purchase trend (all depts, last 6 months) */
+  const trendLine = useMemo(() => {
+    const now = new Date()
+    const map = {}
+    for (let i = 5; i >= 0; i--) {
+      const d = new Date(now.getFullYear(), now.getMonth() - i, 1)
+      map[d.toLocaleString("default", { month: "short", year: "2-digit" })] = 0
+    }
+    for (const list of Object.values(allPurchases)) {
+      for (const p of list) {
+        if (!p.createdDate) continue
+        const d = new Date(p.createdDate)
+        if (isNaN(d)) continue
+        const key = d.toLocaleString("default", { month: "short", year: "2-digit" })
+        if (map[key] !== undefined) map[key]++
+      }
+    }
+    return Object.entries(map).map(([month, count]) => ({ month, count }))
+  }, [allPurchases])
+
+  /* recent purchases across all depts for table */
+  const recentAll = useMemo(() => {
+    const out = []
+    for (const [dept, list] of Object.entries(allPurchases)) {
+      for (const p of list) out.push({ ...p, _dept: dept })
+    }
+    return out.sort((a, b) => (b.id || 0) - (a.id || 0)).slice(0, 8)
+  }, [allPurchases])
 
   return (
     <div className="dashboard-container">
@@ -102,131 +152,196 @@ export default function AdminDashboard() {
         <Topbar onMenuClick={() => setSidebarOpen(true)} />
         <div className="content">
 
-          <h2 className="welcome">Admin Dashboard</h2>
-          {error && <div className="alert alert-error">{error}</div>}
-
-          {/* Summary Cards */}
-          <div className="summary-grid">
-            <div className="summary-card total">
-              <div className="card-icon"><AiOutlineTeam size={22} /></div>
-              <div className="card-info"><h4>Departments</h4><p>{departments.length}</p></div>
-            </div>
-            <div className="summary-card pending">
-              <div className="card-icon"><AiOutlineShoppingCart size={22} /></div>
-              <div className="card-info"><h4>Pending Purchases</h4><p>{deptCounts.pending}</p></div>
-            </div>
-            <div className="summary-card approved">
-              <div className="card-icon"><AiOutlineCheckCircle size={22} /></div>
-              <div className="card-info"><h4>Approved</h4><p>{deptCounts.approved}</p></div>
-            </div>
-            <div className="summary-card rejected">
-              <div className="card-icon"><AiOutlineCloseCircle size={22} /></div>
-              <div className="card-info"><h4>Rejected</h4><p>{deptCounts.rejected}</p></div>
+          <div className="admin-page-header">
+            <div>
+              <div className="admin-page-title">Admin Dashboard</div>
+              <div className="admin-page-subtitle">System-wide overview — all departments</div>
             </div>
           </div>
 
-          {/* Department Selector */}
-          <div style={{ display: "flex", gap: 8, flexWrap: "wrap", marginBottom: 20 }}>
-            {departments.map((d) => {
-              const name = d.name || d
-              return (
-                <button
-                  key={name}
-                  onClick={() => setSelectedDept(name)}
-                  style={{
-                    padding: "8px 16px",
-                    borderRadius: 8,
-                    border: "1.5px solid",
-                    borderColor: selectedDept === name ? "#2563eb" : "#e2e8f0",
-                    background: selectedDept === name ? "#2563eb" : "#fff",
-                    color: selectedDept === name ? "#fff" : "#475569",
-                    fontWeight: 600,
-                    fontSize: 13,
-                    cursor: "pointer",
-                  }}
-                >
-                  {name}
-                </button>
-              )
-            })}
-          </div>
+          {error && <div className="a-alert a-alert-error">{error}</div>}
 
-          {/* Charts */}
-          <div className="charts-grid" style={{ gridTemplateColumns: "1fr 1fr" }}>
-            {deptBarData.length > 0 && (
-              <div className="chart-card">
-                <div className="chart-card-title">
-                  <span className="chart-icon">📊</span> Department Comparison
-                </div>
-                <ResponsiveContainer width="100%" height={220}>
-                  <BarChart data={deptBarData} margin={{ top: 5, right: 10, left: 0, bottom: 5 }}>
-                    <CartesianGrid strokeDasharray="3 3" stroke="#f1f5f9" />
-                    <XAxis dataKey="name" tick={{ fontSize: 11 }} />
-                    <YAxis allowDecimals={false} tick={{ fontSize: 11 }} />
-                    <Tooltip
-                      formatter={(val, name) => [val, name === "purchases" ? "Purchases" : "Users"]}
-                      labelFormatter={(l, payload) => payload?.[0]?.payload?.fullName || l}
-                    />
-                    <Legend />
-                    <Bar dataKey="purchases" fill="#3b82f6" radius={[4, 4, 0, 0]} name="Purchases" />
-                    <Bar dataKey="users" fill="#6366f1" radius={[4, 4, 0, 0]} name="Users" />
-                  </BarChart>
-                </ResponsiveContainer>
-              </div>
-            )}
-            {purchasePieData.length > 0 && (
-              <div className="chart-card">
-                <div className="chart-card-title">
-                  <span className="chart-icon">🥧</span> {selectedDept} — Purchase Status
-                </div>
-                <ResponsiveContainer width="100%" height={220}>
-                  <PieChart>
-                    <Pie data={purchasePieData} cx="50%" cy="50%" outerRadius={75} dataKey="value">
-                      {purchasePieData.map((_, i) => (
-                        <Cell key={i} fill={DEPT_COLORS[i % DEPT_COLORS.length]} />
-                      ))}
-                    </Pie>
-                    <Tooltip />
-                    <Legend />
-                  </PieChart>
-                </ResponsiveContainer>
-              </div>
-            )}
+          {/* Global stats */}
+          <div className="admin-stat-grid">
+            <div className="admin-stat-card blue">
+              <div className="admin-stat-label">Departments</div>
+              <div className="admin-stat-value">{loading ? "–" : totals.depts}</div>
+            </div>
+            <div className="admin-stat-card slate">
+              <div className="admin-stat-label">Total Users</div>
+              <div className="admin-stat-value">{loading ? "–" : totals.users}</div>
+            </div>
+            <div className="admin-stat-card amber">
+              <div className="admin-stat-label">Pending (HOD Approved)</div>
+              <div className="admin-stat-value">{loading ? "–" : totals.pending}</div>
+              <div className="admin-stat-sub">Awaiting admin action</div>
+            </div>
+            <div className="admin-stat-card green">
+              <div className="admin-stat-label">Issued / Received</div>
+              <div className="admin-stat-value">{loading ? "–" : totals.approved}</div>
+            </div>
+            <div className="admin-stat-card red">
+              <div className="admin-stat-label">Rejected</div>
+              <div className="admin-stat-value">{loading ? "–" : totals.rejected}</div>
+            </div>
+            <div className="admin-stat-card purple">
+              <div className="admin-stat-label">Total Purchases</div>
+              <div className="admin-stat-value">{loading ? "–" : totals.total}</div>
+            </div>
           </div>
 
           {/* Quick Actions */}
-          <div className="section-label">Quick Actions</div>
-          <div className="dashboard-quick-actions">
-            <button onClick={() => navigate("/admin-users")}>
-              <AiOutlineUser size={16} /> User Management
-            </button>
-            <button onClick={() => navigate("/admin-department")}>
-              <AiOutlineTeam size={16} /> Departments
-            </button>
-            <button onClick={() => navigate("/admin-report")}>
-              <AiOutlineFileText size={16} /> Reports
-            </button>
-            <button onClick={() => navigate("/admin-view-requests")}>
-              <AiOutlineFileText size={16} /> View All Requests
-            </button>
+          <div className="admin-section-hd">
+            <span className="admin-section-title">Quick Actions</span>
+          </div>
+          <div className="a-qa-grid">
+            <div className="a-qa-card a-qa-blue"   onClick={() => navigate("/admin-users")}>
+              <div className="a-qa-icon"><AiOutlineUser /></div>
+              <div className="a-qa-label">User Management</div>
+            </div>
+            <div className="a-qa-card a-qa-green"  onClick={() => navigate("/admin-department")}>
+              <div className="a-qa-icon"><AiOutlineTeam /></div>
+              <div className="a-qa-label">Departments</div>
+            </div>
+            <div className="a-qa-card a-qa-amber"  onClick={() => navigate("/admin-view-requests")}>
+              <div className="a-qa-icon"><AiOutlineShoppingCart /></div>
+              <div className="a-qa-label">Purchase Requests</div>
+            </div>
+            <div className="a-qa-card a-qa-purple" onClick={() => navigate("/admin-report")}>
+              <div className="a-qa-icon"><AiOutlineBarChart /></div>
+              <div className="a-qa-label">Reports</div>
+            </div>
+            <div className="a-qa-card a-qa-slate"  onClick={() => navigate("/admin-history")}>
+              <div className="a-qa-icon"><AiOutlineHistory /></div>
+              <div className="a-qa-label">History</div>
+            </div>
           </div>
 
-          {/* Departments Table */}
-          <div className="section-card">
-            <div className="section-card-title">Department Overview</div>
-            <table className="requests-table">
+          {/* Charts */}
+          {!loading && (
+            <>
+              <div className="a-chart-grid-2">
+                {deptBar.length > 0 && (
+                  <div className="a-chart-card">
+                    <div className="a-chart-title">Department Comparison — Purchases &amp; Users</div>
+                    <ResponsiveContainer width="100%" height={220}>
+                      <BarChart data={deptBar} margin={{ top: 4, right: 12, left: 0, bottom: 4 }}>
+                        <CartesianGrid strokeDasharray="3 3" stroke="#f1f5f9" />
+                        <XAxis dataKey="name" tick={{ fontSize: 11 }} />
+                        <YAxis allowDecimals={false} tick={{ fontSize: 11 }} />
+                        <Tooltip labelFormatter={(l, p) => p?.[0]?.payload?.fullName || l} />
+                        <Legend iconSize={9} wrapperStyle={{ fontSize: 11 }} />
+                        <Bar dataKey="purchases" fill="#2563eb" radius={[4,4,0,0]} name="Purchases" />
+                        <Bar dataKey="users"     fill="#16a34a" radius={[4,4,0,0]} name="Users" />
+                      </BarChart>
+                    </ResponsiveContainer>
+                  </div>
+                )}
+                {trendLine.length > 0 && (
+                  <div className="a-chart-card">
+                    <div className="a-chart-title">Monthly Purchase Activity (All Depts)</div>
+                    <ResponsiveContainer width="100%" height={220}>
+                      <LineChart data={trendLine} margin={{ top: 4, right: 16, left: 0, bottom: 4 }}>
+                        <CartesianGrid strokeDasharray="3 3" stroke="#f1f5f9" />
+                        <XAxis dataKey="month" tick={{ fontSize: 11 }} />
+                        <YAxis tick={{ fontSize: 11 }} allowDecimals={false} />
+                        <Tooltip />
+                        <Line type="monotone" dataKey="count" stroke="#2563eb" strokeWidth={2}
+                          dot={{ r: 4 }} activeDot={{ r: 6 }} name="Purchases" />
+                      </LineChart>
+                    </ResponsiveContainer>
+                  </div>
+                )}
+              </div>
+
+              {/* Dept selector + pie */}
+              <div className="admin-section-hd">
+                <span className="admin-section-title">Department Detail</span>
+              </div>
+              <div className="a-dept-tabs">
+                {departments.map(d => {
+                  const n = d.name || d
+                  return (
+                    <button key={n} className={`a-dept-tab${selectedDept === n ? " active" : ""}`}
+                      onClick={() => setSelectedDept(n)}>
+                      {n}
+                    </button>
+                  )
+                })}
+              </div>
+
+              <div className="a-chart-grid-2">
+                {statusPie.length > 0 && (
+                  <div className="a-chart-card">
+                    <div className="a-chart-title">{selectedDept} — Purchase Status Breakdown</div>
+                    <ResponsiveContainer width="100%" height={220}>
+                      <PieChart>
+                        <Pie data={statusPie} cx="50%" cy="50%" innerRadius={55} outerRadius={85}
+                          dataKey="value" paddingAngle={3}>
+                          {statusPie.map((_, i) => <Cell key={i} fill={COLORS[i % COLORS.length]} />)}
+                        </Pie>
+                        <Tooltip />
+                        <Legend iconType="circle" iconSize={9} wrapperStyle={{ fontSize: 11 }} />
+                      </PieChart>
+                    </ResponsiveContainer>
+                  </div>
+                )}
+                <div className="a-chart-card">
+                  <div className="a-chart-title">{selectedDept} — Summary</div>
+                  <div style={{ padding: "12px 0" }}>
+                    {[
+                      { label: "Total Purchases",  value: deptPurchases.length, icon: <AiOutlineFileText />,       color: "#2563eb" },
+                      { label: "Pending (HOD Appr)", value: deptPurchases.filter(p => p.status === "APPROVED_BY_HOD").length, icon: <AiOutlineClockCircle />, color: "#d97706" },
+                      { label: "Issued by Admin",   value: deptPurchases.filter(p => p.status === "ISSUED_BY_ADMIN" || p.status === "RECEIVED_BY_HOD").length, icon: <AiOutlineCheckCircle />, color: "#16a34a" },
+                      { label: "Rejected",          value: deptPurchases.filter(p => p.status === "REJECTED_BY_ADMIN" || p.status === "REJECTED_BY_HOD").length, icon: <AiOutlineCloseCircle />, color: "#dc2626" },
+                      { label: "Users",             value: userCounts[selectedDept] ?? 0, icon: <AiOutlineUser />, color: "#7c3aed" },
+                    ].map(item => (
+                      <div key={item.label} style={{ display: "flex", alignItems: "center", justifyContent: "space-between", padding: "10px 0", borderBottom: "1px solid #f1f5f9" }}>
+                        <div style={{ display: "flex", alignItems: "center", gap: 8, fontSize: 13, color: "#334155" }}>
+                          <span style={{ color: item.color }}>{item.icon}</span>
+                          {item.label}
+                        </div>
+                        <span style={{ fontWeight: 800, fontSize: 18, color: item.color }}>{item.value}</span>
+                      </div>
+                    ))}
+                  </div>
+                </div>
+              </div>
+            </>
+          )}
+
+          {/* Recent all-dept purchases */}
+          <div className="admin-section-hd">
+            <span className="admin-section-title">Recent Purchases — All Departments</span>
+            <button className="a-btn a-btn-ghost a-btn-sm" onClick={() => navigate("/admin-view-requests")}>
+              View Pending →
+            </button>
+          </div>
+          <div className="a-table-wrap">
+            <table className="a-table">
               <thead>
-                <tr><th>Department</th><th>Users</th><th>Total Purchases</th></tr>
+                <tr>
+                  <th>#ID</th><th>Dept</th><th>Requested By</th><th>First Item</th>
+                  <th>Items</th><th>Date</th><th>Status</th>
+                </tr>
               </thead>
               <tbody>
-                {loading && <tr><td colSpan="3" className="loading-state">Loading…</td></tr>}
-                {departments.map((d) => {
-                  const name = d.name || d
+                {loading && <tr className="empty-row"><td colSpan="7">Loading…</td></tr>}
+                {!loading && recentAll.length === 0 && (
+                  <tr className="empty-row"><td colSpan="7">No purchases yet</td></tr>
+                )}
+                {!loading && recentAll.map(p => {
+                  const { label, cls } = purchaseStatusPill(p.status)
+                  const items = Array.isArray(p.items) ? p.items : []
                   return (
-                    <tr key={name} style={{ cursor: "pointer" }} onClick={() => setSelectedDept(name)}>
-                      <td style={{ fontWeight: 600 }}>{name}</td>
-                      <td>{userCounts[name] ?? "–"}</td>
-                      <td>{(allPurchases[name] || []).length}</td>
+                    <tr key={`${p._dept}-${p.id}`}>
+                      <td className="a-id">#{p.id}</td>
+                      <td><span className="a-sp a-sp-slate">{p._dept}</span></td>
+                      <td>{p.requestedByName || p.toName || "–"}</td>
+                      <td>{items[0]?.equipmentName || "–"}</td>
+                      <td className="tc">{items.length}</td>
+                      <td className="tc muted">{p.createdDate || "–"}</td>
+                      <td><span className={`a-sp ${cls}`}>{label}</span></td>
                     </tr>
                   )
                 })}
@@ -235,9 +350,6 @@ export default function AdminDashboard() {
           </div>
 
         </div>
-        <footer className="dashboard-footer">
-          Faculty of Engineering · University of Jaffna &nbsp;|&nbsp; © 2026 ERMS
-        </footer>
       </div>
     </div>
   )

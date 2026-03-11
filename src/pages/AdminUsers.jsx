@@ -1,390 +1,445 @@
-import "../styles/studentDashboard.css"
+import "../styles/dashboard.css"
+import "../styles/adminTheme.css"
 import Sidebar from "../components/Sidebar"
 import Topbar from "../components/Topbar"
 import { useEffect, useMemo, useState } from "react"
 import { AdminAPI } from "../api/api"
+import {
+  AiOutlineUser, AiOutlineUserAdd, AiOutlineUserDelete,
+  AiOutlineStop, AiOutlineCheckCircle, AiOutlineEdit,
+  AiOutlineWarning, AiOutlineClose
+} from "react-icons/ai"
+import { FaUserShield, FaUserCog, FaChalkboardTeacher, FaUserTie, FaUserGraduate } from "react-icons/fa"
+import { FaSearch } from "react-icons/fa"
 
-const emailOk = (v) => /\S+@\S+\.\S+/.test((v || "").trim())
-const strongPwd = (v) => /^(?=.*[a-z])(?=.*[A-Z])(?=.*\d)(?=.*[@$!%*?&])[A-Za-z\d@$!%*?&]{8,}$/.test(v || "")
+/* ── Validation ── */
+const emailOk  = v => /\S+@\S+\.\S+/.test((v || "").trim())
+const strongPwd = v => /^(?=.*[a-z])(?=.*[A-Z])(?=.*\d)(?=.*[@$!%*?&])[A-Za-z\d@$!%*?&]{8,}$/.test(v || "")
+
+/* ── Role config ── */
+const ROLE_CONFIG = [
+  { key: "hod",      label: "HOD",               icon: <FaUserShield />,       color: "#2563eb", note: "One HOD per department" },
+  { key: "to",       label: "Technical Officers", icon: <FaUserCog />,          color: "#7c3aed" },
+  { key: "lecturer", label: "Lecturers",          icon: <FaChalkboardTeacher />,color: "#16a34a" },
+  { key: "staff",    label: "Staff / Instructors",icon: <FaUserTie />,          color: "#d97706" },
+]
+
+/* ── Confirm bar (inline, no window.confirm) ── */
+function ConfirmBar({ msg, onConfirm, onCancel, danger = true }) {
+  return (
+    <div className="a-confirm-bar">
+      <span><AiOutlineWarning style={{ marginRight: 6, verticalAlign: -2 }} />{msg}</span>
+      <div style={{ display: "flex", gap: 8 }}>
+        <button className={`a-btn a-btn-sm ${danger ? "a-btn-danger" : "a-btn-primary"}`} onClick={onConfirm}>Confirm</button>
+        <button className="a-btn a-btn-sm a-btn-ghost" onClick={onCancel}>Cancel</button>
+      </div>
+    </div>
+  )
+}
 
 export default function AdminUsers() {
   const [sidebarOpen, setSidebarOpen] = useState(false)
   const [departments, setDepartments] = useState([])
-  const [dept, setDept] = useState("")
-  const [data, setData] = useState(null)
-  const [loading, setLoading] = useState(false)
-  const [error, setError] = useState("")
-  const [notice, setNotice] = useState("")
-  const [editingStudent, setEditingStudent] = useState(null)
+  const [dept, setDept]               = useState("")
+  const [userData, setUserData]       = useState(null)
+  const [loading, setLoading]         = useState(false)
+  const [error, setError]             = useState("")
+  const [notice, setNotice]           = useState("")
+  const [editStudent, setEditStudent] = useState(null)
+  const [searchStudents, setSearchStudents] = useState("")
 
-  const loadDepartments = async () => {
-    setError("")
-    try {
-      const list = await AdminAPI.departments()
-      setDepartments(Array.isArray(list) ? list : [])
-      if (!dept && Array.isArray(list) && list.length) setDept(list[0])
-    } catch (e) {
-      setError(e?.message || "Failed to load departments")
-    }
-  }
-
-  const loadUsers = async (deptArg = dept) => {
-    if (!deptArg) return
-    setError("")
-    setNotice("")
-    try {
-      setLoading(true)
-      const dto = await AdminAPI.departmentUsers(deptArg)
-      setData(dto || null)
-    } catch (e) {
-      setError(e?.message || "Failed to load users")
-    } finally {
-      setLoading(false)
-    }
-  }
-
+  /* load departments once */
   useEffect(() => {
-    loadDepartments()
+    AdminAPI.departments()
+      .then(list => {
+        const arr = Array.isArray(list) ? list : []
+        setDepartments(arr)
+        if (arr.length) setDept(arr[0].name || arr[0])
+      })
+      .catch(e => setError(e?.message || "Failed to load departments"))
   }, [])
 
-  useEffect(() => {
-    if (dept) loadUsers(dept)
-  }, [dept])
+  /* load users when dept changes */
+  useEffect(() => { if (dept) loadUsers(dept) }, [dept])
 
-  const refresh = async () => {
-    await loadUsers(dept)
+  const loadUsers = async (d = dept) => {
+    if (!d) return
+    setError(""); setNotice("")
+    try {
+      setLoading(true)
+      const dto = await AdminAPI.departmentUsers(d)
+      setUserData(dto || null)
+    } catch (e) { setError(e?.message || "Failed to load") }
+    finally { setLoading(false) }
   }
 
+  const showNotice = (msg) => { setNotice(msg); setTimeout(() => setNotice(""), 5000) }
+  const showError  = (msg) => { setError(msg);  setTimeout(() => setError(""), 6000) }
+
   const onCreate = async (roleKey, payload) => {
-    setError("")
-    setNotice("")
+    setError(""); setNotice("")
     try {
-      if (!payload.fullName || !emailOk(payload.email) || !payload.initialPassword) {
-        setError("Please fill valid name, email and password")
-        return false
-      }
-      if (!strongPwd(payload.initialPassword)) {
-        setError("Password must be 8+ chars with uppercase, lowercase, number & special")
-        return false
-      }
-
-      const common = { ...payload, department: dept }
-
-      if (roleKey === "hod") await AdminAPI.createHod(common)
-      else if (roleKey === "to") await AdminAPI.createTo(common)
-      else if (roleKey === "lecturer") await AdminAPI.createLecturer(common)
-      else if (roleKey === "staff") await AdminAPI.createStaff(common)
-      else {
-        setError("Student adding is disabled here")
-        return false
-      }
-
-      setNotice(`${roleKey.toUpperCase()} created successfully`)
-      await refresh()
+      const body = { ...payload, department: dept }
+      if (roleKey === "hod")      await AdminAPI.createHod(body)
+      else if (roleKey === "to")       await AdminAPI.createTo(body)
+      else if (roleKey === "lecturer") await AdminAPI.createLecturer(body)
+      else if (roleKey === "staff")    await AdminAPI.createStaff(body)
+      else { showError("Invalid role"); return false }
+      showNotice(`${roleKey.toUpperCase()} created — Default password sent`)
+      await loadUsers()
       return true
-    } catch (e) {
-      setError(e?.message || "Create failed")
-      return false
-    }
+    } catch (e) { showError(e?.message || "Create failed"); return false }
   }
 
   const onRemove = async (id) => {
-    if (!window.confirm(`Remove user ${id}?`)) return
-    setError("")
-    setNotice("")
-    try {
-      await AdminAPI.deleteUser(id)
-      setNotice("User removed successfully")
-      await refresh()
-    } catch (e) {
-      setError(e?.message || "Remove failed")
-    }
+    try { await AdminAPI.deleteUser(id); showNotice("User removed"); await loadUsers() }
+    catch (e) { showError(e?.message || "Remove failed") }
   }
 
-  const onDisable = async (user) => {
-    const isEnableAction = user?.enabled === false
-    if (!window.confirm(`${isEnableAction ? "Activate" : "Disable"} user ${user?.id}?`)) return
-    setError("")
-    setNotice("")
+  const onToggleDisable = async (user) => {
+    // Backend /disable toggles: if currently enabled → disable; if disabled → re-enable (same endpoint)
     try {
       await AdminAPI.disableUser(user.id)
-      setNotice(isEnableAction ? "User activated successfully" : "User disabled successfully")
-      await refresh()
-    } catch (e) {
-      setError(e?.message || `${isEnableAction ? "Activate" : "Disable"} failed`)
-    }
+      showNotice(user.enabled === false ? "User activated" : "User disabled")
+      await loadUsers()
+    } catch (e) { showError(e?.message || "Action failed") }
   }
 
   const onUpdateStudent = async (id, payload) => {
-    setError("")
-    setNotice("")
     try {
       await AdminAPI.updateUser(id, payload)
-      setNotice("Student updated successfully")
-      setEditingStudent(null)
-      await refresh()
-    } catch (e) {
-      setError(e?.message || "Update failed")
-    }
+      showNotice("Student updated")
+      setEditStudent(null)
+      await loadUsers()
+    } catch (e) { showError(e?.message || "Update failed") }
   }
 
   const groups = useMemo(() => {
-    const safe = (v) => (Array.isArray(v) ? v : [])
+    const safe = v => Array.isArray(v) ? v : []
     return {
-      hods: safe(data?.hods),
-      tos: safe(data?.tos),
-      lecturers: safe(data?.lecturers),
-      staff: safe(data?.staff),
-      students: safe(data?.students),
+      hod:      safe(userData?.hods),
+      to:       safe(userData?.tos),
+      lecturer: safe(userData?.lecturers),
+      staff:    safe(userData?.staff),
+      students: safe(userData?.students),
     }
-  }, [data])
+  }, [userData])
+
+  const filteredStudents = useMemo(() => {
+    const q = searchStudents.toLowerCase()
+    if (!q) return groups.students
+    return groups.students.filter(s =>
+      String(s.fullName || "").toLowerCase().includes(q) ||
+      String(s.regNo   || "").toLowerCase().includes(q) ||
+      String(s.email   || "").toLowerCase().includes(q)
+    )
+  }, [groups.students, searchStudents])
+
+  const totalCount = Object.values(groups).flat().length
 
   return (
     <div className="dashboard-container">
       <Sidebar isOpen={sidebarOpen} onClose={() => setSidebarOpen(false)} />
       <div className="main-content">
         <Topbar onMenuClick={() => setSidebarOpen(true)} />
-
         <div className="content">
-          <div style={{ display: "flex", justifyContent: "space-between", alignItems: "center", gap: 10, flexWrap: "wrap" }}>
-            <h2 style={{ marginBottom: 12 }}>User Management</h2>
-            <div style={{ display: "flex", gap: 10, alignItems: "center", flexWrap: "wrap" }}>
-              <select className="request-filter" value={dept} onChange={(e) => setDept(e.target.value)}>
-                {departments.map((d) => (
-                  <option key={d} value={d}>
-                    {d}
-                  </option>
-                ))}
-              </select>
-              <button className="btn-submit" type="button" onClick={refresh} disabled={loading || !dept}>
-                {loading ? "Loading..." : "Refresh"}
-              </button>
+
+          <div className="admin-page-header">
+            <div>
+              <div className="admin-page-title">User Management</div>
+              <div className="admin-page-subtitle">Create, manage and deactivate department users</div>
             </div>
+            <select className="a-filter-select" value={dept} onChange={e => setDept(e.target.value)}>
+              {departments.map(d => {
+                const n = d.name || d
+                return <option key={n} value={n}>{n}</option>
+              })}
+            </select>
           </div>
 
-          {error && <div style={{ marginBottom: 12, padding: 10, borderRadius: 10, background: "#fff2f2", color: "#a00" }}>{error}</div>}
-          {notice && <div style={{ marginBottom: 12, padding: 10, borderRadius: 10, background: "#eef6ff", color: "#124" }}>{notice}</div>}
+          {error  && <div className="a-alert a-alert-error">{error}</div>}
+          {notice && <div className="a-alert a-alert-success">{notice}</div>}
 
-          <div style={{ display: "grid", gap: 18 }}>
-            <UserGroup
-              title="HOD"
-              roleKey="hod"
-              rows={groups.hods}
+          {/* Stat summary */}
+          {!loading && userData && (
+            <div className="admin-stat-grid" style={{ marginBottom: 24 }}>
+              {ROLE_CONFIG.map(rc => (
+                <div key={rc.key} className="admin-stat-card blue">
+                  <div className="admin-stat-label" style={{ color: rc.color }}>{rc.label}</div>
+                  <div className="admin-stat-value">{groups[rc.key].length}</div>
+                </div>
+              ))}
+              <div className="admin-stat-card slate">
+                <div className="admin-stat-label">Students</div>
+                <div className="admin-stat-value">{groups.students.length}</div>
+              </div>
+              <div className="admin-stat-card blue">
+                <div className="admin-stat-label">Total Users</div>
+                <div className="admin-stat-value">{totalCount}</div>
+              </div>
+            </div>
+          )}
+
+          {loading && <div className="a-empty"><div className="a-empty-icon">⏳</div><div className="a-empty-text">Loading users…</div></div>}
+
+          {/* Staff role groups */}
+          {!loading && ROLE_CONFIG.map(rc => (
+            <UserSection
+              key={rc.key}
+              roleKey={rc.key}
+              label={rc.label}
+              icon={rc.icon}
+              color={rc.color}
+              note={rc.note}
+              rows={groups[rc.key]}
+              dept={dept}
               onCreate={onCreate}
               onRemove={onRemove}
-              onDisable={onDisable}
-              note="Only one HOD is allowed for one department"
+              onToggleDisable={onToggleDisable}
             />
+          ))}
 
-            <UserGroup title="Technical Officers" roleKey="to" rows={groups.tos} onCreate={onCreate} onRemove={onRemove} onDisable={onDisable} />
+          {/* Students (read-only + edit) */}
+          {!loading && userData && (
+            <div className="a-user-section">
+              <div className="a-user-section-header">
+                <div className="a-user-section-title">
+                  <span style={{ color: "#0891b2" }}><FaUserGraduate /></span>
+                  Students
+                  <span className="a-user-count">{groups.students.length}</span>
+                </div>
+                <div style={{ fontSize: 12, color: "var(--a-text-muted)" }}>Students self-register via the signup page</div>
+              </div>
 
-            <UserGroup title="Lecturers" roleKey="lecturer" rows={groups.lecturers} onCreate={onCreate} onRemove={onRemove} onDisable={onDisable} />
+              {groups.students.length > 6 && (
+                <div style={{ padding: "10px 20px", borderBottom: "1px solid #f1f5f9" }}>
+                  <div className="a-filter-wrap" style={{ maxWidth: 300 }}>
+                    <FaSearch size={12} />
+                    <input className="a-filter-input" placeholder="Search name, reg no, email…"
+                      value={searchStudents} onChange={e => setSearchStudents(e.target.value)} />
+                  </div>
+                </div>
+              )}
 
-            <UserGroup title="Instructors (STAFF)" roleKey="staff" rows={groups.staff} onCreate={onCreate} onRemove={onRemove} onDisable={onDisable} />
+              <div className="a-table-wrap" style={{ margin: 0, border: "none", borderRadius: 0, boxShadow: "none" }}>
+                <table className="a-table">
+                  <thead>
+                    <tr><th>Name</th><th>Reg No</th><th>Email</th><th>Status</th><th style={{ textAlign: "center" }}>Actions</th></tr>
+                  </thead>
+                  <tbody>
+                    {filteredStudents.length === 0 && <tr className="empty-row"><td colSpan="5">No students</td></tr>}
+                    {filteredStudents.map(u => (
+                      <tr key={u.id}>
+                        <td style={{ fontWeight: 600 }}>{u.fullName || "–"}</td>
+                        <td className="muted">{u.regNo || "–"}</td>
+                        <td className="muted">{u.email || "–"}</td>
+                        <td>
+                          <span className={u.enabled === false ? "a-sp a-sp-red" : "a-sp a-sp-green"}>
+                            {u.enabled === false ? "Disabled" : "Active"}
+                          </span>
+                        </td>
+                        <td className="tc">
+                          <div style={{ display: "flex", gap: 6, justifyContent: "center" }}>
+                            <button className="a-btn a-btn-outline a-btn-sm a-btn-icon" title="Edit"
+                              onClick={() => setEditStudent(u)}><AiOutlineEdit /></button>
+                            <button className={`a-btn a-btn-sm a-btn-icon ${u.enabled === false ? "a-btn-success" : "a-btn-amber"}`}
+                              title={u.enabled === false ? "Activate" : "Disable"}
+                              onClick={() => onToggleDisable(u)}>
+                              {u.enabled === false ? <AiOutlineCheckCircle /> : <AiOutlineStop />}
+                            </button>
+                            <InlineRemoveBtn onConfirm={() => onRemove(u.id)} />
+                          </div>
+                        </td>
+                      </tr>
+                    ))}
+                  </tbody>
+                </table>
+              </div>
+            </div>
+          )}
 
-            <StudentGroup
-              rows={groups.students}
-              onRemove={onRemove}
-              onEdit={setEditingStudent}
+          {editStudent && (
+            <EditStudentModal
+              student={editStudent}
+              onClose={() => setEditStudent(null)}
+              onSave={onUpdateStudent}
             />
-          </div>
+          )}
+
         </div>
-
-        {editingStudent && (
-          <EditStudentModal
-            student={editingStudent}
-            onClose={() => setEditingStudent(null)}
-            onSave={onUpdateStudent}
-          />
-        )}
-
-        <footer>
-          Faculty of Engineering | University of Jaffna <br />© Copyright 2026. All Rights Reserved - ERS
-        </footer>
       </div>
     </div>
   )
 }
 
-function UserGroup({ title, roleKey, rows, onCreate, onRemove, onDisable, note }) {
+/* ── UserSection component ── */
+function UserSection({ roleKey, label, icon, color, note, rows, dept, onCreate, onRemove, onToggleDisable }) {
   const [fullName, setFullName] = useState("")
-  const [email, setEmail] = useState("")
-  const [pwd, setPwd] = useState("")
-  const [pwd2, setPwd2] = useState("")
-  const [msg, setMsg] = useState("")
+  const [email, setEmail]       = useState("")
+  const [pwd, setPwd]           = useState("")
+  const [pwd2, setPwd2]         = useState("")
+  const [localErr, setLocalErr] = useState("")
+  const [saving, setSaving]     = useState(false)
 
   const submit = async () => {
-    setMsg("")
-    if (!fullName || !emailOk(email) || !pwd || !pwd2) {
-      setMsg("Please fill valid name, email and password")
-      return
-    }
-    if (!strongPwd(pwd)) {
-      setMsg("Password must be 8+ chars with uppercase, lowercase, number & special")
-      return
-    }
-    if (pwd !== pwd2) {
-      setMsg("Passwords do not match")
-      return
-    }
+    setLocalErr("")
+    if (!fullName.trim()) return setLocalErr("Full name is required")
+    if (!emailOk(email))  return setLocalErr("Valid email required")
+    if (!pwd)             return setLocalErr("Password required")
+    if (!strongPwd(pwd))  return setLocalErr("Min 8 chars: uppercase, lowercase, number, special char (@$!%*?&)")
+    if (pwd !== pwd2)     return setLocalErr("Passwords do not match")
 
-    const ok = await onCreate(roleKey, {
-      fullName,
-      email,
-      initialPassword: pwd,
-    })
-
-    if (ok) {
-      setFullName("")
-      setEmail("")
-      setPwd("")
-      setPwd2("")
-    }
+    setSaving(true)
+    const ok = await onCreate(roleKey, { fullName: fullName.trim(), email: email.trim(), initialPassword: pwd })
+    if (ok) { setFullName(""); setEmail(""); setPwd(""); setPwd2("") }
+    setSaving(false)
   }
 
   return (
-    <div>
-      <h3 style={{ marginBottom: 6 }}>{title}</h3>
-      {note && <div style={{ opacity: 0.8, marginBottom: 10, fontSize: 13 }}>{note}</div>}
-      {msg && <div style={{ marginBottom: 10, fontSize: 13, color: "#a00" }}>{msg}</div>}
-
-      <div style={{ display: "flex", gap: 8, flexWrap: "wrap", alignItems: "center", marginBottom: 10 }}>
-        <input placeholder="Full name" value={fullName} onChange={(e) => setFullName(e.target.value)} />
-        <input placeholder="Email" value={email} onChange={(e) => setEmail(e.target.value)} />
-        <input placeholder="Initial password" type="password" value={pwd} onChange={(e) => setPwd(e.target.value)} />
-        <input placeholder="Confirm password" type="password" value={pwd2} onChange={(e) => setPwd2(e.target.value)} />
-        <button className="btn-submit" type="button" onClick={submit}>
-          Add
-        </button>
+    <div className="a-user-section">
+      <div className="a-user-section-header">
+        <div className="a-user-section-title">
+          <span style={{ color }}>{icon}</span>
+          {label}
+          <span className="a-user-count">{rows.length}</span>
+        </div>
+        {note && <div style={{ fontSize: 12, color: "var(--a-text-muted)" }}>{note}</div>}
       </div>
 
-      <table className="requests-table">
-        <thead>
-          <tr>
-            <th style={{ width: "32%" }}>Name</th>
-            <th>Email</th>
-            <th style={{ width: 120 }}>Status</th>
-            <th style={{ width: 220, textAlign: "center" }}>Action</th>
-          </tr>
-        </thead>
-        <tbody>
-          {(rows || []).map((u) => (
-            <tr key={u.id}>
-              <td>{u.fullName || u.name || "-"}</td>
-              <td>{u.email || "-"}</td>
-              <td>{u.enabled === false ? "Disabled" : "Active"}</td>
-              <td style={{ textAlign: "center", display: "flex", gap: 8, justifyContent: "center", flexWrap: "wrap" }}>
-                <button className="btn-cancel" type="button" onClick={() => onRemove(u.id)}>
-                  Remove
-                </button>
-                <button className="btn-submit" type="button" onClick={() => onDisable(u)}>
-                  {u.enabled === false ? "Active" : "Disable"}
-                </button>
-              </td>
-            </tr>
-          ))}
-          {(rows || []).length === 0 && (
-            <tr>
-              <td colSpan="4" style={{ textAlign: "center" }}>
-                No users
-              </td>
-            </tr>
-          )}
-        </tbody>
-      </table>
+      {/* Add form */}
+      <div className="a-user-add-form">
+        {localErr && <div className="a-alert a-alert-error" style={{ marginBottom: 10 }}>{localErr}</div>}
+        <div className="a-user-add-grid">
+          <div className="a-form-group">
+            <label className="a-label">Full Name</label>
+            <input className="a-input" placeholder="Dr. A. Kumar" value={fullName} onChange={e => setFullName(e.target.value)} />
+          </div>
+          <div className="a-form-group">
+            <label className="a-label">Email</label>
+            <input className="a-input" placeholder="user@eng.jfn.ac.lk" value={email} onChange={e => setEmail(e.target.value)} />
+          </div>
+          <div className="a-form-group">
+            <label className="a-label">Password</label>
+            <input className="a-input" type="password" placeholder="Min 8 chars" value={pwd} onChange={e => setPwd(e.target.value)} />
+          </div>
+          <div className="a-form-group">
+            <label className="a-label">Confirm Password</label>
+            <input className="a-input" type="password" placeholder="Repeat password" value={pwd2} onChange={e => setPwd2(e.target.value)} />
+          </div>
+          <div className="a-form-group" style={{ justifyContent: "flex-end" }}>
+            <label className="a-label">&nbsp;</label>
+            <button className="a-btn a-btn-primary" onClick={submit} disabled={saving}
+              style={{ width: "100%", justifyContent: "center" }}>
+              <AiOutlineUserAdd />
+              {saving ? "Creating…" : `Add ${label.split(" ")[0]}`}
+            </button>
+          </div>
+        </div>
+      </div>
+
+      {/* Users table */}
+      <div className="a-table-wrap" style={{ margin: 0, border: "none", borderRadius: 0, boxShadow: "none" }}>
+        <table className="a-table">
+          <thead>
+            <tr><th>Name</th><th>Email</th><th>Status</th><th style={{ textAlign: "center" }}>Actions</th></tr>
+          </thead>
+          <tbody>
+            {rows.length === 0 && <tr className="empty-row"><td colSpan="4">No {label.toLowerCase()} in {dept}</td></tr>}
+            {rows.map(u => (
+              <tr key={u.id}>
+                <td style={{ fontWeight: 600 }}>{u.fullName || u.name || "–"}</td>
+                <td className="muted">{u.email || "–"}</td>
+                <td>
+                  <span className={u.enabled === false ? "a-sp a-sp-red" : "a-sp a-sp-green"}>
+                    {u.enabled === false ? "Disabled" : "Active"}
+                  </span>
+                </td>
+                <td className="tc">
+                  <div style={{ display: "flex", gap: 6, justifyContent: "center" }}>
+                    <button
+                      className={`a-btn a-btn-sm a-btn-icon ${u.enabled === false ? "a-btn-success" : "a-btn-amber"}`}
+                      title={u.enabled === false ? "Activate" : "Disable"}
+                      onClick={() => onToggleDisable(u)}>
+                      {u.enabled === false ? <AiOutlineCheckCircle /> : <AiOutlineStop />}
+                    </button>
+                    <InlineRemoveBtn onConfirm={() => onRemove(u.id)} />
+                  </div>
+                </td>
+              </tr>
+            ))}
+          </tbody>
+        </table>
+      </div>
     </div>
   )
 }
 
-function StudentGroup({ rows, onRemove, onEdit }) {
+/* ── Inline remove with confirm (no window.confirm) ── */
+function InlineRemoveBtn({ onConfirm }) {
+  const [confirming, setConfirming] = useState(false)
+  if (confirming) {
+    return (
+      <div style={{ display: "flex", gap: 5, alignItems: "center" }}>
+        <span style={{ fontSize: 11.5, color: "#dc2626", fontWeight: 600 }}>Remove?</span>
+        <button className="a-btn a-btn-danger a-btn-sm" style={{ padding: "3px 8px" }} onClick={() => { setConfirming(false); onConfirm() }}>Yes</button>
+        <button className="a-btn a-btn-ghost a-btn-sm" style={{ padding: "3px 8px" }} onClick={() => setConfirming(false)}>No</button>
+      </div>
+    )
+  }
   return (
-    <div>
-      <h3 style={{ marginBottom: 6 }}>Students</h3>
-
-      <table className="requests-table">
-        <thead>
-          <tr>
-            <th style={{ width: "30%" }}>Name</th>
-            <th style={{ width: "18%" }}>Reg No</th>
-            <th>Email</th>
-            <th style={{ width: 180, textAlign: "center" }}>Action</th>
-          </tr>
-        </thead>
-        <tbody>
-          {(rows || []).map((u) => (
-            <tr key={u.id}>
-              <td>{u.fullName || "-"}</td>
-              <td>{u.regNo || "-"}</td>
-              <td>{u.email || "-"}</td>
-              <td style={{ textAlign: "center", display: "flex", gap: 8, justifyContent: "center", flexWrap: "wrap" }}>
-                <button className="btn-submit" type="button" onClick={() => onEdit(u)}>
-                  Edit
-                </button>
-                <button className="btn-cancel" type="button" onClick={() => onRemove(u.id)}>
-                  Remove
-                </button>
-              </td>
-            </tr>
-          ))}
-          {(rows || []).length === 0 && (
-            <tr>
-              <td colSpan="4" style={{ textAlign: "center" }}>
-                No students
-              </td>
-            </tr>
-          )}
-        </tbody>
-      </table>
-    </div>
+    <button className="a-btn a-btn-sm a-btn-icon a-btn-danger" title="Remove" onClick={() => setConfirming(true)}>
+      <AiOutlineUserDelete />
+    </button>
   )
 }
 
+/* ── Edit Student Modal ── */
 function EditStudentModal({ student, onClose, onSave }) {
   const [fullName, setFullName] = useState(student?.fullName || "")
-  const [regNo, setRegNo] = useState(student?.regNo || "")
-  const [msg, setMsg] = useState("")
-  const [saving, setSaving] = useState(false)
+  const [regNo, setRegNo]       = useState(student?.regNo || "")
+  const [msg, setMsg]           = useState("")
+  const [saving, setSaving]     = useState(false)
 
   const submit = async () => {
     setMsg("")
-    if (!fullName.trim() || !regNo.trim()) {
-      setMsg("Name and Reg No are required")
-      return
-    }
-
-    try {
-      setSaving(true)
-      await onSave(student.id, { fullName: fullName.trim(), regNo: regNo.trim() })
-    } finally {
-      setSaving(false)
-    }
+    if (!fullName.trim()) return setMsg("Name is required")
+    if (!regNo.trim())    return setMsg("Reg No is required")
+    setSaving(true)
+    try { await onSave(student.id, { fullName: fullName.trim(), regNo: regNo.trim() }) }
+    catch (e) { setMsg(e?.message || "Save failed") }
+    finally { setSaving(false) }
   }
 
   return (
-    <div style={{ position: "fixed", inset: 0, background: "rgba(0,0,0,0.35)", display: "flex", alignItems: "center", justifyContent: "center", zIndex: 1000, padding: 16 }}>
-      <div style={{ background: "#fff", borderRadius: 16, padding: 20, width: "100%", maxWidth: 480, boxShadow: "0 10px 30px rgba(0,0,0,0.18)" }}>
-        <h3 style={{ marginTop: 0, marginBottom: 12 }}>Edit Student</h3>
-        {msg && <div style={{ marginBottom: 10, color: "#a00" }}>{msg}</div>}
-        <div style={{ display: "grid", gap: 10 }}>
-          <div>
-            <label style={{ display: "block", marginBottom: 6 }}>Name</label>
-            <input style={{ width: "100%" }} value={fullName} onChange={(e) => setFullName(e.target.value)} />
+    <div className="a-modal-overlay">
+      <div className="a-modal">
+        <div style={{ display: "flex", justifyContent: "space-between", alignItems: "center", marginBottom: 18 }}>
+          <div className="a-modal-title">Edit Student</div>
+          <button className="a-btn a-btn-ghost a-btn-icon" onClick={onClose}><AiOutlineClose /></button>
+        </div>
+        {msg && <div className="a-alert a-alert-error">{msg}</div>}
+        <div style={{ display: "grid", gap: 14 }}>
+          <div className="a-form-group">
+            <label className="a-label">Full Name</label>
+            <input className="a-input" value={fullName} onChange={e => setFullName(e.target.value)} />
           </div>
-          <div>
-            <label style={{ display: "block", marginBottom: 6 }}>Reg No</label>
-            <input style={{ width: "100%" }} value={regNo} onChange={(e) => setRegNo(e.target.value)} />
+          <div className="a-form-group">
+            <label className="a-label">Reg No</label>
+            <input className="a-input" placeholder="2022/E/063" value={regNo} onChange={e => setRegNo(e.target.value)} />
           </div>
-          <div>
-            <label style={{ display: "block", marginBottom: 6 }}>Email</label>
-            <input style={{ width: "100%", background: "#f5f5f5" }} value={student?.email || ""} disabled />
+          <div className="a-form-group">
+            <label className="a-label">Email (read-only)</label>
+            <input className="a-input" value={student?.email || ""} disabled />
+          </div>
+          <div className="a-form-group">
+            <label className="a-label">Department (read-only)</label>
+            <input className="a-input" value={student?.department || "–"} disabled />
           </div>
         </div>
-        <div style={{ display: "flex", justifyContent: "flex-end", gap: 10, marginTop: 18 }}>
-          <button className="btn-cancel" type="button" onClick={onClose} disabled={saving}>
-            Cancel
-          </button>
-          <button className="btn-submit" type="button" onClick={submit} disabled={saving}>
-            {saving ? "Saving..." : "Save"}
+        <div className="a-modal-actions">
+          <button className="a-btn a-btn-ghost" onClick={onClose} disabled={saving}>Cancel</button>
+          <button className="a-btn a-btn-primary" onClick={submit} disabled={saving}>
+            {saving ? "Saving…" : "Save Changes"}
           </button>
         </div>
       </div>
