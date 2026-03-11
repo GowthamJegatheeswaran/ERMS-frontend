@@ -43,6 +43,7 @@ import HodReport from "./pages/HodReport"
 import HodReportLab from "./pages/HodReportLab"
 import HodDeptPurchase from "./pages/HodDeptPurchase"
 import HodHistory from "./pages/HodHistory"
+import HodInspect from "./pages/HodInspect"
 
 // Admin
 import AdminDashboard from "./pages/AdminDashboard"
@@ -104,6 +105,7 @@ function App() {
           <Route path="/hod-report-lab/:labId" element={<HodReportLab />} />
           <Route path="/hod-dept-purchase" element={<HodDeptPurchase />} />
           <Route path="/hod-history" element={<HodHistory />} />
+          <Route path="/hod-inspect" element={<HodInspect />} />
 
           {/* ADMIN */}
           <Route path="/admin-dashboard" element={<AdminDashboard />} />
