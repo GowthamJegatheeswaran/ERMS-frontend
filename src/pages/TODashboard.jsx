@@ -222,10 +222,6 @@ export default function TODashboard() {
               <div className="to-qa-icon">📋</div>
               <div className="to-qa-label">Approval Requests</div>
             </div>
-            <div className="to-qa-card to-qa-amber" onClick={() => navigate("/to-view-requests")}>
-              <div className="to-qa-icon">🔍</div>
-              <div className="to-qa-label">View All Requests</div>
-            </div>
             <div className="to-qa-card to-qa-green" onClick={() => navigate("/to-purchase-new")}>
               <div className="to-qa-icon">🛒</div>
               <div className="to-qa-label">New Purchase</div>
