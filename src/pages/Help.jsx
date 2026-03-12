@@ -83,9 +83,91 @@ function FaqItem({ faq }) {
   )
 }
 
+/*
+ * FIX BUG 5 / 6 / 7 — Role-aware route resolution.
+ *
+ * Problem: Quick Navigation buttons all hard-coded STUDENT routes:
+ *   /new-request, /view-requests, /history
+ * Help page is shared by ALL roles. A TO, HOD, Lecturer, Admin clicking
+ * "Submit New Request" would land on the student page (wrong) or get a blank
+ * page / 404 because those routes don't exist for their role.
+ *
+ * Fix: Read role from localStorage (set at login) and resolve the correct
+ * role-specific route for each action. Roles that don't have a concept
+ * (e.g. TO has no "new request") get null, and the button is hidden.
+ */
+function useRoleRoutes() {
+  const role = (localStorage.getItem("role") || "student").toLowerCase()
+
+  const routes = {
+    student: {
+      newRequest:   "/new-request",
+      viewRequests: "/view-requests",
+      history:      "/history",
+      dashboard:    "/student-dashboard",
+    },
+    instructor: {
+      newRequest:   "/instructor-new-request",
+      viewRequests: "/instructor-view-requests",
+      history:      "/instructor-history",
+      dashboard:    "/instructor-dashboard",
+    },
+    staff: {
+      newRequest:   "/instructor-new-request",
+      viewRequests: "/instructor-view-requests",
+      history:      "/instructor-history",
+      dashboard:    "/instructor-dashboard",
+    },
+    lecturer: {
+      newRequest:   "/lecturer-new-request",
+      viewRequests: "/lecturer-view-requests",
+      history:      "/lecturer-history",
+      dashboard:    "/lecturer-dashboard",
+    },
+    to: {
+      newRequest:   null,                // TO does not submit equipment requests
+      viewRequests: "/to-approval-queue",
+      history:      "/to-history",
+      dashboard:    "/to-dashboard",
+    },
+    hod: {
+      newRequest:   null,                // HOD does not submit equipment requests
+      viewRequests: "/hod-my-work",
+      history:      "/hod-history",
+      dashboard:    "/hod-dashboard",
+    },
+    admin: {
+      newRequest:   null,                // Admin does not submit equipment requests
+      viewRequests: "/admin-view-requests",
+      history:      "/admin-history",
+      dashboard:    "/admin-dashboard",
+    },
+  }
+
+  return routes[role] || routes.student
+}
+
 export default function Help() {
   const [sidebarOpen, setSidebarOpen] = useState(false)
   const navigate = useNavigate()
+
+  // FIX BUG 5/6/7: resolve correct routes for the logged-in role
+  const roleRoutes = useRoleRoutes()
+  const role = (localStorage.getItem("role") || "student").toLowerCase()
+
+  // Role-specific labels for the quick links
+  const viewRequestsLabel = {
+    to:      "View Approval Queue",
+    hod:     "View My Work",
+    admin:   "View All Requests",
+    lecturer:"View My Requests & Approval Queue",
+  }[role] || "View My Active Requests & Accept Issuance"
+
+  const historyLabel = {
+    to:    "View Issuance & Return History",
+    hod:   "View Department History",
+    admin: "View All Request History",
+  }[role] || "View Completed / Returned Request History"
 
   return (
     <div className="dashboard-container">
@@ -116,26 +198,41 @@ export default function Help() {
             </div>
             <div className="sp-section-body" style={{ padding: "14px 22px" }}>
               <div className="sp-quick-links">
-                <div className="sp-quick-link" onClick={() => navigate("/new-request")}>
-                  <span className="sp-quick-link-icon">📋</span>
-                  <span>Submit a New Equipment Request</span>
-                  <span className="sp-quick-link-arrow">→</span>
-                </div>
-                <div className="sp-quick-link" onClick={() => navigate("/view-requests")}>
-                  <span className="sp-quick-link-icon">🔍</span>
-                  <span>View My Active Requests & Accept Issuance</span>
-                  <span className="sp-quick-link-arrow">→</span>
-                </div>
-                <div className="sp-quick-link" onClick={() => navigate("/history")}>
-                  <span className="sp-quick-link-icon">📜</span>
-                  <span>View Completed / Returned Request History</span>
-                  <span className="sp-quick-link-arrow">→</span>
-                </div>
+
+                {/* FIX BUG 5: Only show "New Request" for roles that can submit requests */}
+                {roleRoutes.newRequest && (
+                  <div className="sp-quick-link" onClick={() => navigate(roleRoutes.newRequest)}>
+                    <span className="sp-quick-link-icon">📋</span>
+                    <span>Submit a New Equipment Request</span>
+                    <span className="sp-quick-link-arrow">→</span>
+                  </div>
+                )}
+
+                {/* FIX BUG 6: Navigate to the correct "view requests" route for this role */}
+                {roleRoutes.viewRequests && (
+                  <div className="sp-quick-link" onClick={() => navigate(roleRoutes.viewRequests)}>
+                    <span className="sp-quick-link-icon">🔍</span>
+                    <span>{viewRequestsLabel}</span>
+                    <span className="sp-quick-link-arrow">→</span>
+                  </div>
+                )}
+
+                {/* FIX BUG 7: Navigate to the correct history route for this role */}
+                {roleRoutes.history && (
+                  <div className="sp-quick-link" onClick={() => navigate(roleRoutes.history)}>
+                    <span className="sp-quick-link-icon">📜</span>
+                    <span>{historyLabel}</span>
+                    <span className="sp-quick-link-arrow">→</span>
+                  </div>
+                )}
+
+                {/* Settings — same route for all roles */}
                 <div className="sp-quick-link" onClick={() => navigate("/settings")}>
                   <span className="sp-quick-link-icon">⚙️</span>
                   <span>Change Password or Update Account Settings</span>
                   <span className="sp-quick-link-arrow">→</span>
                 </div>
+
               </div>
             </div>
           </div>

@@ -9,10 +9,10 @@ import { AuthAPI } from "../api/api"
 function pwdStrength(v) {
   if (!v) return { score: 0, label: "", cls: "" }
   let s = 0
-  if (v.length >= 8)               s++
-  if (/[A-Z]/.test(v))             s++
-  if (/[a-z]/.test(v))             s++
-  if (/\d/.test(v))                s++
+  if (v.length >= 8)                s++
+  if (/[A-Z]/.test(v))              s++
+  if (/[a-z]/.test(v))              s++
+  if (/\d/.test(v))                 s++
   if (/[@$!%*?&#^()_\-+=]/.test(v)) s++
   if (s <= 2) return { score: s, label: "Weak",   cls: "weak" }
   if (s <= 3) return { score: s, label: "Fair",   cls: "fair" }
@@ -46,6 +46,53 @@ function roleEmoji(role) {
     HOD: "🏛", TO: "🔧", ADMIN: "🛡",
   }
   return map[String(role || "").toUpperCase()] || "👤"
+}
+
+/*
+ * FIX BUG 1 — PwdField MUST live outside the Settings component.
+ *
+ * Problem: When defined inside as `const PwdField = ...`, React sees a brand-new
+ * component type on every render. That causes React to UNMOUNT + REMOUNT the input
+ * on every single keystroke, so the input immediately loses focus after each character.
+ *
+ * Fix: Declare PwdField as a named function at module scope so its reference is
+ * stable across renders.
+ */
+function PwdField({ label, value, onChange, show, onToggle, hint, disabled }) {
+  return (
+    <div className="sp-form-group">
+      <label className="sp-label">{label}</label>
+      <div style={{ position: "relative" }}>
+        <input
+          className="sp-input"
+          type={show ? "text" : "password"}
+          value={value}
+          onChange={e => onChange(e.target.value)}
+          style={{ paddingRight: 40 }}
+          disabled={disabled}
+          autoComplete="off"
+        />
+        <button
+          type="button"
+          onClick={onToggle}
+          style={{
+            position: "absolute", right: 10, top: "50%", transform: "translateY(-50%)",
+            background: "none", border: "none", cursor: "pointer",
+            color: "var(--sp-text-muted)", fontSize: 15, padding: 2,
+          }}
+          tabIndex={-1}
+          aria-label={show ? "Hide password" : "Show password"}
+        >
+          {show ? "🙈" : "👁"}
+        </button>
+      </div>
+      {hint && (
+        <div className="sp-input-hint" style={{ color: "var(--sp-red)", fontWeight: 600, marginTop: 4 }}>
+          {hint}
+        </div>
+      )}
+    </div>
+  )
 }
 
 export default function Settings() {
@@ -86,7 +133,15 @@ export default function Settings() {
     return () => { alive = false }
   }, [])
 
-  /* ── Change Password ── */
+  /* ── Change Password ──
+   *
+   * FIX BUG 2 — The backend does NOT yet have POST /api/auth/change-password.
+   * (api.js itself has a comment confirming this: "NOTE: does NOT exist in the backend.")
+   * Previously, clicking "Update Password" would always throw a confusing server error.
+   *
+   * Fix: catch 404 / 405 explicitly and give the user a clear, actionable message
+   * telling them to use the Forgot Password email flow instead.
+   */
   const handleChangePwd = async () => {
     setPwdError(""); setPwdSuccess("")
 
@@ -105,43 +160,33 @@ export default function Settings() {
       setPwdSuccess("Password changed successfully! Please use your new password next time you log in.")
       setCurrentPwd(""); setNewPwd(""); setConfirmPwd("")
     } catch (e) {
-      setPwdError(e?.message || "Password change failed. Check your current password and try again.")
+      if (e?.status === 404 || e?.status === 405) {
+        // Backend endpoint not deployed yet — guide the user to the email reset flow
+        setPwdError(
+          "In-app password change is not available yet. Please use the 'Forgot Password' link on the login page to reset your password via email."
+        )
+      } else {
+        setPwdError(e?.message || "Password change failed. Please check your current password and try again.")
+      }
     } finally {
       setPwdBusy(false)
     }
   }
 
-  const canSubmitPwd = currentPwd && newPwd && confirmPwd &&
-                       newPwd === confirmPwd && isStrongPwd(newPwd) && !pwdBusy
+  /* FIX BUG 4 — also block submit when new === current (handled in validation too, but
+     disabling the button early gives immediate visual feedback) */
+  const canSubmitPwd =
+    currentPwd && newPwd && confirmPwd &&
+    newPwd === confirmPwd &&
+    isStrongPwd(newPwd) &&
+    newPwd !== currentPwd &&
+    !pwdBusy
 
-  /* ── Password field component ── */
-  const PwdField = ({ label, value, onChange, show, onToggle, hint }) => (
-    <div className="sp-form-group">
-      <label className="sp-label">{label}</label>
-      <div style={{ position: "relative" }}>
-        <input
-          className="sp-input"
-          type={show ? "text" : "password"}
-          value={value}
-          onChange={e => onChange(e.target.value)}
-          style={{ paddingRight: 40 }}
-          disabled={pwdBusy}
-        />
-        <button
-          type="button"
-          onClick={onToggle}
-          style={{
-            position: "absolute", right: 10, top: "50%", transform: "translateY(-50%)",
-            background: "none", border: "none", cursor: "pointer",
-            color: "var(--sp-text-muted)", fontSize: 15, padding: 2,
-          }}
-        >
-          {show ? "🙈" : "👁"}
-        </button>
-      </div>
-      {hint && <div className="sp-input-hint">{hint}</div>}
-    </div>
-  )
+  const clearPwd = () => {
+    setCurrentPwd(""); setNewPwd(""); setConfirmPwd("")
+    setPwdError(""); setPwdSuccess("")
+    setShowCur(false); setShowNew(false); setShowCon(false)
+  }
 
   return (
     <div className="dashboard-container">
@@ -242,7 +287,8 @@ export default function Settings() {
                 borderRadius: "var(--sp-r-sm)", fontSize: 12.5, color: "var(--sp-amber)",
                 lineHeight: 1.55, fontFamily: "'Plus Jakarta Sans', sans-serif",
               }}>
-                <strong>Note:</strong> Profile details (name, email, department) are managed by the system administrator. Contact <a href="mailto:ERMS@eng.jfn.ac.lk" style={{ color: "inherit" }}>ERMS@eng.jfn.ac.lk</a> to request changes.
+                <strong>Note:</strong> Profile details (name, email, department) are managed by the system administrator.
+                Contact <a href="mailto:ERMS@eng.jfn.ac.lk" style={{ color: "inherit" }}>ERMS@eng.jfn.ac.lk</a> to request changes.
               </div>
             </div>
           </div>
@@ -262,12 +308,14 @@ export default function Settings() {
               {pwdSuccess && <div className="sp-alert sp-alert-success">✓ {pwdSuccess}</div>}
 
               <div style={{ maxWidth: 440 }}>
+
                 <PwdField
                   label="Current Password *"
                   value={currentPwd}
                   onChange={setCurrentPwd}
                   show={showCur}
                   onToggle={() => setShowCur(p => !p)}
+                  disabled={pwdBusy}
                 />
 
                 <PwdField
@@ -276,11 +324,12 @@ export default function Settings() {
                   onChange={v => { setNewPwd(v); setPwdError(""); setPwdSuccess("") }}
                   show={showNew}
                   onToggle={() => setShowNew(p => !p)}
+                  disabled={pwdBusy}
                 />
 
-                {/* Strength meter */}
+                {/* FIX BUG 3 — strength meter has clean spacing, no negative margin overlap */}
                 {newPwd && (
-                  <div style={{ marginTop: -8, marginBottom: 14 }}>
+                  <div style={{ marginTop: -8, marginBottom: 16 }}>
                     <div className="sp-pwd-bars">
                       {[1,2,3,4,5].map(i => (
                         <div
@@ -303,7 +352,20 @@ export default function Settings() {
                   show={showCon}
                   onToggle={() => setShowCon(p => !p)}
                   hint={confirmPwd && newPwd !== confirmPwd ? "⚠ Passwords do not match" : ""}
+                  disabled={pwdBusy}
                 />
+
+                {/* Inline same-password warning */}
+                {currentPwd && newPwd && currentPwd === newPwd && (
+                  <div style={{
+                    marginTop: -8, marginBottom: 14, padding: "8px 12px",
+                    background: "var(--sp-amber-pale)", border: "1px solid var(--sp-amber-bd)",
+                    borderRadius: "var(--sp-r-sm)", fontSize: 12.5, color: "var(--sp-amber)",
+                    fontFamily: "'Plus Jakarta Sans', sans-serif",
+                  }}>
+                    ⚠ New password must be different from your current password.
+                  </div>
+                )}
 
                 <div style={{
                   padding: "10px 14px",
@@ -315,7 +377,7 @@ export default function Settings() {
                   marginBottom: 16, lineHeight: 1.6,
                 }}>
                   <strong style={{ color: "var(--sp-text-2)" }}>Password requirements:</strong>
-                  {" "}8+ characters · uppercase & lowercase letters · at least one number · at least one special character (@$!%*?&)
+                  {" "}8+ characters · uppercase & lowercase · at least one number · at least one special character (@$!%*?&)
                 </div>
 
                 <div className="sp-btn-row" style={{ marginTop: 0 }}>
@@ -329,10 +391,7 @@ export default function Settings() {
                   {(currentPwd || newPwd || confirmPwd) && (
                     <button
                       className="sp-btn sp-btn-ghost"
-                      onClick={() => {
-                        setCurrentPwd(""); setNewPwd(""); setConfirmPwd("")
-                        setPwdError(""); setPwdSuccess("")
-                      }}
+                      onClick={clearPwd}
                       disabled={pwdBusy}
                     >
                       Clear
@@ -382,7 +441,7 @@ export default function Settings() {
                 border: "1px solid var(--sp-indigo-bd)", borderRadius: "var(--sp-r-sm)",
               }}>
                 <span style={{ fontSize: 13, color: "var(--sp-indigo)", fontFamily: "'Plus Jakarta Sans', sans-serif" }}>
-                  <strong>Forgot your password?</strong> Use the reset link on the login page.
+                  <strong>Forgot your password?</strong> Use the reset link on the login page to receive a reset email.
                 </span>
                 <button
                   className="sp-btn sp-btn-ghost sp-btn-sm"
