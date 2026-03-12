@@ -61,6 +61,11 @@ export const AuthAPI = {
   // Returns: { id, fullName, email, regNo, department, role, enabled }
   me: () => apiFetch("/api/auth/me"),
 
+  changePassword: ({ currentPassword, newPassword }) =>
+    apiFetch("/api/auth/change-password", {
+      method: "POST",
+      body: JSON.stringify({ currentPassword, newPassword }),
+    }),
   // NOTE: /api/auth/change-password does NOT exist in the backend.
   // To change password, the user must use forgotPassword (email reset flow).
   // If you want in-app change-password, add a backend endpoint first:
