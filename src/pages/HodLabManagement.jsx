@@ -7,13 +7,34 @@ import { AiOutlineCheckCircle, AiOutlineCloseCircle } from "react-icons/ai"
 import { MdOutlineScience } from "react-icons/md"
 import { FaUserCog } from "react-icons/fa"
 
-// Fetch only TO-role users in the department from AdminAPI.departmentUsers
+/*
+ * FIX BUG 1 — fetchTOUsers was always returning []
+ *
+ * Problem:
+ *   AdminAPI.departmentUsers(dept) returns an AdminDepartmentUsersDTO object:
+ *     { department: "CE", hods: [...], tos: [...], lecturers: [...], staff: [...], students: [...] }
+ *
+ *   The old code treated this as if it were an array:
+ *     const arr = Array.isArray(list) ? list        // false — it's an object
+ *                 : Array.isArray(list?.content)     // false — no .content field exists
+ *                 ? list.content
+ *                 : []                               // always falls through to []
+ *
+ *   So arr was ALWAYS [] → filter returned [] → toUsers = [] → "Available TOs: 0"
+ *   and the dropdown had no options.
+ *
+ * Fix:
+ *   Read list.tos directly — that's where the TO users live in the DTO.
+ *   Also filter to only enabled TOs so disabled accounts don't appear.
+ */
 async function fetchTOUsers(department) {
   if (!department) return []
   try {
-    const list = await AdminAPI.departmentUsers(department)
-    const arr = Array.isArray(list) ? list : (Array.isArray(list?.content) ? list.content : [])
-    return arr.filter(u => String(u.role || "").toUpperCase() === "TO")
+    const data = await AdminAPI.departmentUsers(department)
+    // data is AdminDepartmentUsersDTO — TOs are in data.tos[]
+    const tos = Array.isArray(data?.tos) ? data.tos : []
+    // Only show enabled TOs
+    return tos.filter(u => u.enabled !== false)
   } catch {
     return []
   }
@@ -21,13 +42,13 @@ async function fetchTOUsers(department) {
 
 export default function HodLabManagement() {
   const [sidebarOpen, setSidebarOpen] = useState(false)
-  const [labs, setLabs]         = useState([])
-  const [toUsers, setToUsers]   = useState([])
-  const [user, setUser]         = useState(null)
-  const [loading, setLoading]   = useState(true)
-  const [saving, setSaving]     = useState({})    // { labId: bool }
-  const [messages, setMessages] = useState({})    // { labId: { text, ok } }
-  const [error, setError]       = useState("")
+  const [labs,    setLabs]    = useState([])
+  const [toUsers, setToUsers] = useState([])
+  const [user,    setUser]    = useState(null)
+  const [loading, setLoading] = useState(true)
+  const [saving,  setSaving]  = useState({})     // { labId: bool }
+  const [messages,setMessages]= useState({})     // { labId: { text, ok } }
+  const [error,   setError]   = useState("")
 
   useEffect(() => {
     let alive = true
@@ -61,14 +82,20 @@ export default function HodLabManagement() {
     try {
       if (!toUserId) {
         await HodLabAPI.clearTo(labId)
-        setLabs(p => p.map(l => l.id === labId ? { ...l, technicalOfficerId: null, technicalOfficer: null } : l))
+        setLabs(p => p.map(l =>
+          l.id === labId
+            ? { ...l, technicalOfficer: null }
+            : l
+        ))
         setMsg(labId, "Technical Officer removed", true)
       } else {
         await HodLabAPI.assignTo(labId, Number(toUserId))
+        // FIX BUG 3: now toUsers is populated correctly (BUG 1 fixed),
+        // so assigned TO's name will always be found and shown
         const assigned = toUsers.find(u => String(u.id) === String(toUserId))
         setLabs(p => p.map(l =>
           l.id === labId
-            ? { ...l, technicalOfficerId: Number(toUserId), technicalOfficer: assigned || { id: Number(toUserId) } }
+            ? { ...l, technicalOfficer: assigned || { id: Number(toUserId) } }
             : l
         ))
         setMsg(labId, `Assigned: ${assigned?.fullName || "TO"} successfully`, true)
@@ -80,8 +107,27 @@ export default function HodLabManagement() {
     }
   }
 
+  /*
+   * FIX BUG 2 — Lab JSON has technicalOfficer as a nested User object, not a flat ID.
+   * The backend Lab entity is serialized as:
+   *   { id, name, department, technicalOfficer: { id, fullName, email, ... } }
+   * There is NO separate technicalOfficerId field in the response.
+   * So we must read the TO id from technicalOfficer.id consistently.
+   */
+  const getLabToId = (lab) => lab?.technicalOfficer?.id ?? null
+
+  const getLabToName = (lab) => {
+    const toId = getLabToId(lab)
+    if (!toId) return null
+    // Try from the embedded object first (comes from backend)
+    if (lab.technicalOfficer?.fullName) return lab.technicalOfficer.fullName
+    // Fallback: look up in the TO list
+    return toUsers.find(u => u.id === toId)?.fullName || null
+  }
+
+  // FIX BUG 4 — assignedCount now uses the correct field path
   const assignedCount = useMemo(() =>
-    labs.filter(l => !!(l.technicalOfficerId ?? l.technicalOfficer?.id ?? null)).length
+    labs.filter(l => !!getLabToId(l)).length
   , [labs])
 
   return (
@@ -102,7 +148,7 @@ export default function HodLabManagement() {
 
           {error && <div className="hod-alert hod-alert-error">{error}</div>}
 
-          {/* Stats */}
+          {/* Stats — FIX BUG 4: toUsers.length now shows the real count */}
           <div className="stat-grid" style={{ marginBottom: 24 }}>
             <div className="stat-card blue">
               <div className="stat-label">Total Labs</div>
@@ -141,14 +187,10 @@ export default function HodLabManagement() {
             </div>
           ) : (
             labs.map(lab => {
-              const msg        = messages[lab.id]
-              const isSaving   = !!saving[lab.id]
-              const currentId  = lab.technicalOfficerId ?? lab.technicalOfficer?.id ?? null
-              const currentName =
-                lab.technicalOfficerName ||
-                lab.technicalOfficer?.fullName ||
-                (currentId ? toUsers.find(u => u.id === currentId)?.fullName : null) ||
-                null
+              const msg      = messages[lab.id]
+              const isSaving = !!saving[lab.id]
+              const currentId   = getLabToId(lab)
+              const currentName = getLabToName(lab)
 
               return (
                 <div key={lab.id} className="lab-mgmt-card">
@@ -187,7 +229,9 @@ export default function HodLabManagement() {
                       ))}
                     </select>
 
-                    {isSaving && <span style={{ fontSize: 12.5, color: "var(--text-muted)" }}>Saving…</span>}
+                    {isSaving && (
+                      <span style={{ fontSize: 12.5, color: "var(--text-muted)" }}>Saving…</span>
+                    )}
 
                     {msg && (
                       <span className={msg.ok ? "lab-mgmt-msg-ok" : "lab-mgmt-msg-err"}>
@@ -202,7 +246,7 @@ export default function HodLabManagement() {
           )}
 
           <div className="hod-alert hod-alert-info" style={{ marginTop: 20 }}>
-            <strong>Note:</strong> Only Technical Officers (TO) in your department are shown.
+            <strong>Note:</strong> Only enabled Technical Officers (TO) in your department are shown.
             Changes take effect immediately — the assigned TO gains access to issue equipment for that lab.
           </div>
 
