@@ -7,20 +7,58 @@ import { AiOutlineCheckCircle, AiOutlineCloseCircle } from "react-icons/ai"
 import { MdOutlineScience } from "react-icons/md"
 import { FaUserCog } from "react-icons/fa"
 
-// Fetch TO-role users in the department from AdminAPI.departmentUsers
-// The endpoint returns { hods:[], tos:[], lecturers:[], staff:[], students:[] }
-async function fetchTOUsers(department) {
-  if (!department) return []
+/*
+  ── Why TOs may show as 0 ───────────────────────────────────────────────────
+  Admin-created TO accounts have email_verified = 0 in the DB.
+  The existing /api/admin/departments/{dept}/users endpoint filters them out.
+
+  Multi-strategy fetch (tried in order, merged by user id):
+  1. GET /api/hod/department-tos  ← new dedicated endpoint (no email_verified filter)
+     Requires adding to backend — see api.js HodLabAPI.deptTOs comment.
+  2. GET /api/admin/departments/{dept}/users → dto.tos[]
+     Works only for TOs where email_verified = 1.
+  3. Extract TOs already embedded in /api/hod/labs response
+     Always shows currently-assigned TOs even if everything else fails.
+
+  Permanent fix: add the backend endpoint (#1), OR run the SQL:
+    UPDATE users SET email_verified = 1 WHERE role = 'TO' AND department = '<dept>';
+  ────────────────────────────────────────────────────────────────────────────
+*/
+async function fetchTOUsers(department, labList) {
+  const mergedMap = new Map() // id → user object
+
+  // Strategy 3 (baseline): TOs already embedded in labs data
+  for (const lab of (Array.isArray(labList) ? labList : [])) {
+    const to = lab.technicalOfficer
+    if (to?.id) {
+      mergedMap.set(to.id, {
+        id:       to.id,
+        fullName: to.fullName || lab.technicalOfficerName || `TO #${to.id}`,
+        email:    to.email || "",
+        role:     "TO",
+      })
+    }
+  }
+
+  // Strategy 2: AdminAPI (only gets email_verified=1 TOs)
   try {
     const dto = await AdminAPI.departmentUsers(department)
-    // dto is an object with role-keyed arrays, NOT a flat array
-    const arr = Array.isArray(dto?.tos) ? dto.tos : []
-    // Include all TOs — even those with unverified email (admin-created accounts)
-    // so the HOD can still assign them to labs
-    return arr
-  } catch {
-    return []
-  }
+    for (const u of (Array.isArray(dto?.tos) ? dto.tos : [])) {
+      if (u?.id) mergedMap.set(u.id, u)
+    }
+  } catch { /* ignore */ }
+
+  // Strategy 1 (best): dedicated HOD endpoint — no email_verified filter
+  try {
+    const list = await HodLabAPI.deptTOs()
+    if (Array.isArray(list)) {
+      for (const u of list) {
+        if (u?.id) mergedMap.set(u.id, u)
+      }
+    }
+  } catch { /* endpoint not yet deployed — strategies 2/3 cover it */ }
+
+  return [...mergedMap.values()]
 }
 
 export default function HodLabManagement() {
@@ -29,22 +67,21 @@ export default function HodLabManagement() {
   const [toUsers, setToUsers]   = useState([])
   const [user, setUser]         = useState(null)
   const [loading, setLoading]   = useState(true)
-  const [saving, setSaving]     = useState({})    // { labId: bool }
-  const [messages, setMessages] = useState({})    // { labId: { text, ok } }
+  const [saving, setSaving]     = useState({})
+  const [messages, setMessages] = useState({})
   const [error, setError]       = useState("")
 
   useEffect(() => {
     let alive = true
     ;(async () => {
       try {
-        const me = await AuthAPI.me()
-        const [labList, tos] = await Promise.all([
-          HodLabAPI.labs(),
-          fetchTOUsers(me.department),
-        ])
+        const me      = await AuthAPI.me()
+        const labList = await HodLabAPI.labs()
+        const labs    = Array.isArray(labList) ? labList : []
+        const tos     = await fetchTOUsers(me.department, labs)
         if (!alive) return
         setUser(me)
-        setLabs(Array.isArray(labList) ? labList : [])
+        setLabs(labs)
         setToUsers(tos)
       } catch (e) {
         if (alive) setError(e?.message || "Failed to load")
@@ -124,19 +161,33 @@ export default function HodLabManagement() {
               <div className="stat-label">Available TOs</div>
               <div className="stat-value">{toUsers.length}</div>
               <div className="stat-sub" style={{ fontSize: 11, color: "var(--text-muted)", marginTop: 2 }}>
-                Each TO can manage multiple labs
+                A TO can manage multiple labs
               </div>
             </div>
           </div>
 
+          {/* Warning when no TOs visible — explains the email_verified root cause */}
           {toUsers.length === 0 && !loading && (
             <div className="hod-alert hod-alert-amber">
-              No Technical Officers found in department <strong>{user?.department}</strong>.
-              Ask the Admin to create TO accounts for your department.
+              <strong>No TOs visible for department {user?.department}.</strong>
+              {" "}This happens because admin-created TO accounts have{" "}
+              <code>email_verified = 0</code> in the database, and the current
+              user-list API filters them out.
+              <br /><br />
+              <strong>Fix options (backend required):</strong>
               <br />
-              <span style={{ fontSize: 12, opacity: 0.85 }}>
-                Note: If TOs were recently created, ensure their accounts are <strong>enabled</strong> in Admin → User Management.
-              </span>
+              <strong>Option 1 — Quick SQL fix</strong> (run once in MySQL Workbench):
+              <pre style={{
+                background: "#1e1e2e", color: "#cdd6f4", padding: "8px 12px",
+                borderRadius: 6, fontSize: 12, margin: "8px 0", overflowX: "auto"
+              }}>
+{`UPDATE railway.users
+SET email_verified = 1
+WHERE role = 'TO' AND department = '${user?.department || "<dept>"}';`}
+              </pre>
+              <strong>Option 2 — Add backend endpoint</strong> so TOs are always visible
+              regardless of email_verified. See the comment in <code>api.js</code> inside{" "}
+              <code>HodLabAPI.deptTOs</code> for the Spring Boot code to add.
             </div>
           )}
 
@@ -188,12 +239,12 @@ export default function HodLabManagement() {
                       className="lab-mgmt-select"
                       value={currentId || ""}
                       onChange={e => handleAssign(lab.id, e.target.value || null)}
-                      disabled={isSaving}
+                      disabled={isSaving || toUsers.length === 0}
                     >
                       <option value="">— Remove / No TO —</option>
                       {toUsers.map(u => (
                         <option key={u.id} value={u.id}>
-                          {u.fullName || u.email} &nbsp;({u.email})
+                          {u.fullName || u.email}{u.email ? ` (${u.email})` : ""}
                         </option>
                       ))}
                     </select>
@@ -213,9 +264,9 @@ export default function HodLabManagement() {
           )}
 
           <div className="hod-alert hod-alert-info" style={{ marginTop: 20 }}>
-            <strong>Note:</strong> Only Technical Officers (TO) in your department are shown.
+            <strong>Note:</strong> Only TOs in your department are shown.
             A single TO can be assigned to multiple labs.
-            Changes take effect immediately — the assigned TO gains access to issue equipment for that lab.
+            Changes take effect immediately.
           </div>
 
         </div>
