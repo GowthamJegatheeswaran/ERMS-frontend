@@ -51,6 +51,43 @@ function reqBucket(s) {
   return "Approved"
 }
 
+/* Derive a "display" overall status for a request that has multiple items.
+   The request-level status can lag; we compute a more accurate label from items. */
+function deriveOverallStatus(r) {
+  const items = Array.isArray(r?.items) ? r.items : []
+  if (!items.length) return r.status
+
+  const statuses = items.map(it => String(it.itemStatus || "").toUpperCase())
+
+  // If every item is returned/verified → fully completed
+  if (statuses.every(s => s === "RETURN_VERIFIED" || s === "DAMAGED_REPORTED"))
+    return "RETURNED_VERIFIED"
+
+  // If some items need return verification
+  if (statuses.some(s => s === "RETURN_REQUESTED" || s === "RETURN_VERIFIED"))
+    return "RETURNED_PENDING_TO_VERIFY"
+
+  // If any item needs student to confirm
+  if (statuses.some(s => s === "ISSUED_PENDING_REQUESTER_ACCEPT"))
+    return "ISSUED_PENDING_STUDENT_ACCEPT"
+
+  // Fall back to request-level status
+  return r.status
+}
+
+/* True if ALL items in the request are fully returned/verified */
+function isFullyCompleted(r) {
+  const items = Array.isArray(r?.items) ? r.items : []
+  if (!items.length) {
+    const u = String(r.status || "").toUpperCase()
+    return u === "RETURNED_VERIFIED" || u === "DAMAGED_REPORTED"
+  }
+  return items.every(it => {
+    const s = String(it.itemStatus || "").toUpperCase()
+    return s === "RETURN_VERIFIED" || s === "DAMAGED_REPORTED"
+  })
+}
+
 /* Need-action: student has something to do */
 function needsAction(r) {
   const u = String(r.status || "").toUpperCase()
@@ -100,16 +137,13 @@ export default function StudentDashboard() {
   const counts = useMemo(() => ({
     total:      rows.length,
     pending:    rows.filter(r => String(r.status || "").toUpperCase() === "PENDING_LECTURER_APPROVAL").length,
+    rejected:   rows.filter(r => String(r.status || "").toUpperCase() === "REJECTED_BY_LECTURER").length,
     active:     rows.filter(r => {
       const u = String(r.status || "").toUpperCase()
-      return u !== "PENDING_LECTURER_APPROVAL" && u !== "REJECTED_BY_LECTURER" &&
-             u !== "RETURNED_VERIFIED" && u !== "DAMAGED_REPORTED"
+      return u !== "PENDING_LECTURER_APPROVAL" && u !== "REJECTED_BY_LECTURER" && !isFullyCompleted(r)
     }).length,
     needAction: rows.filter(needsAction).length,
-    completed:  rows.filter(r => {
-      const u = String(r.status || "").toUpperCase()
-      return u === "RETURNED_VERIFIED" || u === "DAMAGED_REPORTED"
-    }).length,
+    completed:  rows.filter(isFullyCompleted).length,
   }), [rows])
 
   /* ── Pie data ── */
@@ -200,10 +234,15 @@ export default function StudentDashboard() {
               <div className="st-stat-value">{loading ? "—" : counts.needAction}</div>
               <div className="st-stat-sub">Accept issuance</div>
             </div>
+            <div className="st-stat-card red">
+              <div className="st-stat-label">Rejected</div>
+              <div className="st-stat-value">{loading ? "—" : counts.rejected}</div>
+              <div className="st-stat-sub">Declined by lecturer</div>
+            </div>
             <div className="st-stat-card slate">
               <div className="st-stat-label">Completed</div>
               <div className="st-stat-value">{loading ? "—" : counts.completed}</div>
-              <div className="st-stat-sub">Returned / closed</div>
+              <div className="st-stat-sub">All items returned</div>
             </div>
           </div>
 
@@ -316,7 +355,7 @@ export default function StudentDashboard() {
                       </td>
                       <td className="st-muted">{r.fromDate || "—"}</td>
                       <td className="st-muted">{r.toDate || "—"}</td>
-                      <td><span className={reqSpClass(r.status)}>{reqStatusLabel(r.status)}</span></td>
+                      <td><span className={reqSpClass(deriveOverallStatus(r))}>{reqStatusLabel(deriveOverallStatus(r))}</span></td>
                     </tr>
                   ))}
                 </tbody>

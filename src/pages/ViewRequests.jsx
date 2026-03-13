@@ -80,17 +80,41 @@ function itemStatusLabel(s) {
   }
 }
 
+/* Derive a "display" overall status for a request that has multiple items */
+function deriveOverallStatus(r) {
+  const items = Array.isArray(r?.items) ? r.items : []
+  if (!items.length) return r.status
+  const statuses = items.map(it => String(it.itemStatus || "").toUpperCase())
+  if (statuses.every(s => s === "RETURN_VERIFIED" || s === "DAMAGED_REPORTED"))
+    return "RETURNED_VERIFIED"
+  if (statuses.some(s => s === "RETURN_REQUESTED" || s === "RETURN_VERIFIED"))
+    return "RETURNED_PENDING_TO_VERIFY"
+  if (statuses.some(s => s === "ISSUED_PENDING_REQUESTER_ACCEPT"))
+    return "ISSUED_PENDING_STUDENT_ACCEPT"
+  return r.status
+}
+
+/* True if request is fully completed (all items returned/verified) */
+function isFullyCompleted(r) {
+  const items = Array.isArray(r?.items) ? r.items : []
+  if (!items.length) {
+    const u = String(r.status || "").toUpperCase()
+    return u === "RETURNED_VERIFIED" || u === "DAMAGED_REPORTED"
+  }
+  return items.every(it => {
+    const s = String(it.itemStatus || "").toUpperCase()
+    return s === "RETURN_VERIFIED" || s === "DAMAGED_REPORTED"
+  })
+}
+
 const STATUS_FILTERS = [
-  { value: "all",                           label: "All Statuses" },
+  { value: "all",                           label: "All Active Statuses" },
   { value: "PENDING_LECTURER_APPROVAL",     label: "Pending Approval" },
   { value: "APPROVED_BY_LECTURER",          label: "Approved" },
-  { value: "REJECTED_BY_LECTURER",          label: "Rejected" },
   { value: "TO_PROCESSING",                 label: "TO Processing" },
   { value: "ISSUED_PENDING_STUDENT_ACCEPT", label: "Issued (Confirm?)" },
   { value: "ISSUED_CONFIRMED",              label: "Issued & Confirmed" },
   { value: "RETURNED_PENDING_TO_VERIFY",    label: "Return Pending" },
-  { value: "RETURNED_VERIFIED",             label: "Returned" },
-  { value: "DAMAGED_REPORTED",              label: "Damaged" },
 ]
 
 export default function ViewRequests() {
@@ -184,6 +208,11 @@ export default function ViewRequests() {
   const filtered = useMemo(() => {
     const q = search.toLowerCase()
     return rows.filter(r => {
+      const u = String(r.status || "").toUpperCase()
+      // Always exclude rejected and fully returned — those belong in History
+      if (u === "REJECTED_BY_LECTURER") return false
+      if (isFullyCompleted(r)) return false
+
       const matchStatus = statusFilter === "all" || String(r.status || "") === statusFilter
       const matchSearch = !q ||
         String(r.requestId).includes(q) ||
@@ -219,7 +248,7 @@ export default function ViewRequests() {
             <div className="st-page-header-left">
               <div className="st-page-title">My Requests</div>
               <div className="st-page-subtitle">
-                Accept issued equipment and submit returns for your requests
+                Active requests only — rejected and returned items are in History
               </div>
             </div>
             <div className="st-page-actions">
@@ -317,8 +346,8 @@ export default function ViewRequests() {
                       </span>
                     )}
                   </div>
-                  <span className={reqSpClass(r.status)}>
-                    {reqStatusLabel(r.status)}
+                  <span className={reqSpClass(deriveOverallStatus(r))}>
+                    {reqStatusLabel(deriveOverallStatus(r))}
                   </span>
                 </div>
 
