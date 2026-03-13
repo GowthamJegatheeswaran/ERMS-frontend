@@ -7,13 +7,17 @@ import { AiOutlineCheckCircle, AiOutlineCloseCircle } from "react-icons/ai"
 import { MdOutlineScience } from "react-icons/md"
 import { FaUserCog } from "react-icons/fa"
 
-// Fetch only TO-role users in the department from AdminAPI.departmentUsers
+// Fetch TO-role users in the department from AdminAPI.departmentUsers
+// The endpoint returns { hods:[], tos:[], lecturers:[], staff:[], students:[] }
 async function fetchTOUsers(department) {
   if (!department) return []
   try {
-    const list = await AdminAPI.departmentUsers(department)
-    const arr = Array.isArray(list) ? list : (Array.isArray(list?.content) ? list.content : [])
-    return arr.filter(u => String(u.role || "").toUpperCase() === "TO")
+    const dto = await AdminAPI.departmentUsers(department)
+    // dto is an object with role-keyed arrays, NOT a flat array
+    const arr = Array.isArray(dto?.tos) ? dto.tos : []
+    // Include all TOs — even those with unverified email (admin-created accounts)
+    // so the HOD can still assign them to labs
+    return arr
   } catch {
     return []
   }
@@ -119,6 +123,9 @@ export default function HodLabManagement() {
             <div className="stat-card slate">
               <div className="stat-label">Available TOs</div>
               <div className="stat-value">{toUsers.length}</div>
+              <div className="stat-sub" style={{ fontSize: 11, color: "var(--text-muted)", marginTop: 2 }}>
+                Each TO can manage multiple labs
+              </div>
             </div>
           </div>
 
@@ -126,6 +133,10 @@ export default function HodLabManagement() {
             <div className="hod-alert hod-alert-amber">
               No Technical Officers found in department <strong>{user?.department}</strong>.
               Ask the Admin to create TO accounts for your department.
+              <br />
+              <span style={{ fontSize: 12, opacity: 0.85 }}>
+                Note: If TOs were recently created, ensure their accounts are <strong>enabled</strong> in Admin → User Management.
+              </span>
             </div>
           )}
 
@@ -203,6 +214,7 @@ export default function HodLabManagement() {
 
           <div className="hod-alert hod-alert-info" style={{ marginTop: 20 }}>
             <strong>Note:</strong> Only Technical Officers (TO) in your department are shown.
+            A single TO can be assigned to multiple labs.
             Changes take effect immediately — the assigned TO gains access to issue equipment for that lab.
           </div>
 

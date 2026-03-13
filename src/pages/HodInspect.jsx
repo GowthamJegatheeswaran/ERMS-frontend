@@ -52,7 +52,7 @@ export default function HodInspect() {
         lab:       r.labName  || "–",
         from:      r.fromDate || "–",
         to:        r.toDate   || "–",
-        purpose:   r.purposeType || "–",
+        purpose:   r.purpose || r.purposeType || "–",
         reqStatus: r.status   || "–",
       }
       if (items.length === 0) {

@@ -131,7 +131,7 @@ export default function HodMyWork() {
           lab:       r.labName     || "–",
           from:      r.fromDate    || "–",
           to:        r.toDate      || "–",
-          purpose:   r.purposeType || "–",
+          purpose:   r.purpose || r.purposeType || "–",
           status:    r.status      || "–",
         }
       })
