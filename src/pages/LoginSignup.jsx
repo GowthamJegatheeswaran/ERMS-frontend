@@ -58,6 +58,7 @@ export default function LoginSignup() {
   const [showCPw,       setShowCPw]       = useState(false)
   const [signupError,   setSignupError]   = useState("")
   const [signupSuccess, setSignupSuccess] = useState("")
+  const [signupEmail,   setSignupEmail]   = useState("")
   const [signupLoading, setSignupLoading] = useState(false)
 
   const strongPat      = useMemo(() => /(?=.*[a-z])(?=.*[A-Z])(?=.*\d)(?=.*[@$!%*?&]).{8,}/, [])
